@@ -60,6 +60,8 @@ _BIZ = {
     'phone':                          'Business_Phone',
     'email':                          'Business_Email',
     'entity':                         'Entity_Type1',
+    'type of entity':                 'Entity_Type1',
+    'entity type':                    'Entity_Type1',
     'federal tax id':                 'Federal_Tax_ID',
     'business start date (mm/yyyy)':  'Date_Current_Ownership_Started',
     'date current ownership started': 'Date_Current_Ownership_Started',
@@ -93,6 +95,8 @@ _SEC = {
 
 _PROP = {
     'business description':                 'Industry_App',
+    'industry':                             'Industry_App',
+    'purpose of funds requested':           '_industry_fallback',
     'annual business revenue':              'Portal_Monthly_Rev',
     'estimated fico score':                 '_fico_raw',
     'requested advance amount':             'Requested_Funding_Amount',
@@ -208,6 +212,36 @@ def _norm_money(v: str | None) -> str | None:
     return re.sub(r'[,$]', '', v).strip() or None
 
 
+def _norm_entity(v: str | None) -> str | None:
+    """
+    Clean entity type values from checkbox-style cells like:
+      'Corporation LLC X Other: (please describe): LLLP'
+    Prefer the described value after '(please describe):' if present,
+    otherwise return the raw value trimmed.
+    """
+    if not v:
+        return None
+    v = v.strip()
+    # Highest priority: explicit "(please describe): VALUE"
+    m = re.search(r'\(please\s+describe\)\s*:\s*(.+)', v, re.IGNORECASE)
+    if m:
+        described = m.group(1).strip()
+        if described:
+            return described
+    # Second: "Other: VALUE" (without the describe clause)
+    m = re.search(r'\bOther\s*:\s*([^(].+)', v, re.IGNORECASE)
+    if m:
+        other_val = re.sub(r'\(please describe\).*', '', m.group(1), flags=re.IGNORECASE).strip()
+        if other_val:
+            return other_val
+    # Simple clean value — strip checkbox noise (lone "X", bullet chars)
+    cleaned = re.sub(r'\bX\b', '', v).strip()
+    # If it now looks like a pure entity name (short, no other colons), return it
+    if ':' not in cleaned and len(cleaned) <= 60:
+        return cleaned or v
+    return v
+
+
 # ─── Section boundary detection ────────────────────────────────────────────────
 
 def _find_row(table: list[list], pattern: str) -> int | None:
@@ -275,7 +309,7 @@ def _post_process(raw: dict) -> dict:
     out['Business_Legal_Name']            = g('Business_Legal_Name')
     out['Doing_Business_As_DBA']          = g('Doing_Business_As_DBA')
     out['Federal_Tax_ID']                 = _norm_ein(g('Federal_Tax_ID'))
-    out['Entity_Type1']                   = g('Entity_Type1')
+    out['Entity_Type1']                   = _norm_entity(g('Entity_Type1'))
     out['Business_Address']               = g('Business_Address')
     out['Business_City']                  = g('Business_City')
     out['Business_State']                 = _norm_state(g('Business_State'))
@@ -283,7 +317,7 @@ def _post_process(raw: dict) -> dict:
     out['Business_Phone']                 = _norm_phone(g('Business_Phone'))
     out['Business_Email']                 = g('Business_Email')
     out['Date_Current_Ownership_Started'] = g('Date_Current_Ownership_Started')
-    out['Industry_App']                   = g('Industry_App')
+    out['Industry_App']                   = g('Industry_App') or g('_industry_fallback')
 
     # Time in business — derive from start date year
     tib   = None
