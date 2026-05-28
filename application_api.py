@@ -45,7 +45,7 @@ def parse_application():
     ocr = parse_signed_application(pdf_bytes)
 
     payload = {
-        "client_id":                   client_id,
+        "clientCode":                   client_id,
         # business
         "Business_Legal_Name":         ocr.get("Business_Legal_Name"),
         "Doing_Business_As_DBA":       ocr.get("Doing_Business_As_DBA"),
