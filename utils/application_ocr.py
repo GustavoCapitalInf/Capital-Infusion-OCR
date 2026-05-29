@@ -191,9 +191,14 @@ def _norm_date(v: str | None) -> str | None:
     if not v:
         return None
     v = v.strip()
-    for fmt in ('%m/%d/%Y', '%m-%d-%Y', '%m/%d/%y', '%m-%d-%y', '%m/%Y', '%m-%Y'):
+    for fmt in (
+        '%m/%d/%Y', '%m-%d-%Y',   # full date 4-digit year
+        '%m/%d/%y', '%m-%d-%y',   # full date 2-digit year
+        '%m/%Y',    '%m-%Y',      # month/year 4-digit
+        '%m/%y',    '%m-%y',      # month/year 2-digit  e.g. 9/98 → 1998-09-01
+    ):
         try:
-            return datetime.strptime(v, fmt).strftime('%Y-%m-%d')
+            return datetime.strptime(v, fmt).strftime('%m-%d-%Y')
         except ValueError:
             continue
     return v
@@ -316,14 +321,14 @@ def _post_process(raw: dict) -> dict:
     out['Business_Zip']                   = g('Business_Zip')
     out['Business_Phone']                 = _norm_phone(g('Business_Phone'))
     out['Business_Email']                 = g('Business_Email')
-    out['Date_Current_Ownership_Started'] = g('Date_Current_Ownership_Started')
+    start_norm = _norm_date(g('Date_Current_Ownership_Started'))
+    out['Date_Current_Ownership_Started'] = start_norm
     out['Industry_App']                   = g('Industry_App') or g('_industry_fallback')
 
-    # Time in business — derive from start date year
-    tib   = None
-    start = g('Date_Current_Ownership_Started')
-    if start:
-        m = re.search(r'(\d{4})', start)
+    # Time in business — derive from normalized start date year
+    tib = None
+    if start_norm:
+        m = re.search(r'(\d{4})', start_norm)
         if m:
             try:
                 tib = datetime.now().year - int(m.group(1))

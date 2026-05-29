@@ -1,8 +1,5 @@
 """
-app.py
-------
-Orbit Optix — Financial Intelligence & Bank Statement Analysis
-Main Streamlit application entry point.
+app.py — Orbit Optix Financial Intelligence Dashboard
 """
 
 import re
@@ -14,6 +11,7 @@ _LENDER_APP_URL = "https://lendersuggestion.onrender.com"
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from banks.base import parse_universal_bank_rows, parse_ocr_transactions, fix_lender_direction
@@ -29,9 +27,7 @@ from utils.risk_detection import calculate_risk_level, generate_notes
 from utils.teams_notify import notify_teams
 
 
-# ============================================================================
-# APPLICATION API — start Flask server once in a background daemon thread
-# ============================================================================
+# ── Flask API background thread ────────────────────────────────────────────────
 
 def _start_application_api():
     from application_api import app as flask_app
@@ -48,225 +44,484 @@ def _ensure_api_running():
 _ensure_api_running()
 
 
-# ============================================================================
-# PAGE CONFIG & THEME
-# ============================================================================
+# ── Page config ────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Orbit Optix - Financial Intelligence",
+    page_title="Orbit Optix",
+    page_icon="⬡",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={"About": "Orbit Optix v2.0 — Enterprise Bank Statement Analysis"},
 )
 
-DARK_THEME_CSS = """
+# ── Theme CSS ──────────────────────────────────────────────────────────────────
+
+THEME = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    :root {
-        --bg-base:#f4f8ff; --bg-card:#ffffff; --bg-hover:#eaf2ff;
-        --border:#c9d8f0; --border-dim:#dfe8f7;
-        --text-primary:#0f172a; --text-secondary:#4b5b7a; --text-dim:#94a3b8;
-        --orange:#f59e0b; --green:#22c55e; --blue:#2563eb;
-        --red:#ef4444; --amber:#fbbf24;
-    }
-    html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],.main {
-        background-color:var(--bg-base)!important;
-        color:var(--text-primary)!important;
-        font-family:'Inter',sans-serif!important;
-    }
-    [data-testid="stSidebar"]{background-color:#111!important;}
-    [data-testid="stSidebar"] p,[data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] label{color:var(--text-secondary)!important;font-size:12px!important;}
-    [data-testid="stSidebar"] h3{color:var(--text-secondary)!important;font-size:10px!important;
-        font-weight:600!important;letter-spacing:1.5px!important;text-transform:uppercase!important;}
-    h1{font-size:16px!important;font-weight:500!important;color:var(--text-primary)!important;}
-    h2,h3{font-size:11px!important;font-weight:600!important;letter-spacing:1px!important;
-        text-transform:uppercase!important;color:var(--text-secondary)!important;
-        border-bottom:none!important;margin-bottom:12px!important;}
-    p,span,.stMarkdown,li{color:var(--text-secondary)!important;font-size:13px!important;}
-    [data-testid="metric-container"]{background-color:var(--bg-card)!important;
-        border:1px solid var(--border)!important;border-radius:8px!important;padding:18px 20px!important;}
-    [data-testid="stMetricValue"]{font-size:28px!important;font-weight:600!important;
-        color:var(--text-primary)!important;}
-    [data-testid="stMetricLabel"]{font-size:10px!important;font-weight:600!important;
-        letter-spacing:1px!important;text-transform:uppercase!important;color:var(--text-secondary)!important;}
-    .stTabs [data-baseweb="tab"]{font-size:11px!important;font-weight:500!important;
-        padding:10px 18px!important;color:var(--text-dim)!important;}
-    .stTabs [aria-selected="true"]{color:var(--text-primary)!important;
-        border-bottom:2px solid var(--orange)!important;}
-    .stButton>button{background-color:#252525!important;color:#eee!important;
-        border:1px solid var(--border)!important;border-radius:6px!important;font-size:12px!important;}
-    ::-webkit-scrollbar{width:5px;height:5px;}
-    ::-webkit-scrollbar-thumb{background:#333;border-radius:2px;}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg:       #F4F6FA;
+  --card:     #FFFFFF;
+  --sb:       #0A0F1E;
+  --border:   #E4E9F0;
+  --t1:       #0D1526;
+  --t2:       #4A5568;
+  --t3:       #9AA5B4;
+  --indigo:   #4F6EF7;
+  --indigo-d: #3B5BDB;
+  --indigo-l: #EEF2FF;
+  --green:    #0CA678;
+  --green-l:  #E6FAF5;
+  --red:      #E53E3E;
+  --red-l:    #FFF5F5;
+  --amber:    #D97706;
+  --amber-l:  #FFFBEB;
+  --blue:     #3182CE;
+  --blue-l:   #EBF8FF;
+  --purple:   #7C3AED;
+  --sh:       0 1px 3px rgba(0,0,0,0.06),0 2px 8px rgba(0,0,0,0.04);
+  --sh-md:    0 4px 20px rgba(0,0,0,0.10);
+  --r:        12px;
+  --rsm:      8px;
+  --rlg:      16px;
+}
+
+/* ── Reset & base ── */
+*,*::before,*::after{box-sizing:border-box;}
+html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],.main{
+  background:var(--bg)!important;
+  font-family:'Inter',system-ui,sans-serif!important;
+  color:var(--t1)!important;
+}
+.block-container{padding:24px 32px 60px!important;max-width:1400px!important;}
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"]{
+  background:var(--sb)!important;
+  border-right:1px solid rgba(255,255,255,0.04)!important;
+}
+[data-testid="stSidebar"]>div:first-child{padding:0!important;}
+[data-testid="stSidebar"] *{font-family:'Inter',sans-serif!important;}
+[data-testid="stSidebar"] p,[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label{color:#475569!important;font-size:12px!important;}
+[data-testid="stSidebar"] .stTextInput input{
+  background:rgba(255,255,255,0.06)!important;
+  border:1px solid rgba(255,255,255,0.1)!important;
+  border-radius:var(--rsm)!important;
+  color:#CBD5E1!important;font-size:13px!important;
+}
+[data-testid="stSidebar"] .stTextInput input::placeholder{color:#2D3748!important;}
+[data-testid="stSidebar"] .stTextInput input:focus{
+  border-color:var(--indigo)!important;
+  box-shadow:0 0 0 3px rgba(99,102,241,0.25)!important;
+}
+[data-testid="stSidebar"] hr{border:none!important;border-top:1px solid rgba(255,255,255,0.06)!important;margin:6px 0!important;}
+[data-testid="stSidebar"] [data-testid="stToggle"] label{color:#64748B!important;}
+
+/* ── Typography ── */
+h1,h2,h3{margin:0!important;}
+p,span,li{color:var(--t2)!important;font-size:13px!important;line-height:1.6!important;}
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"]{background:transparent!important;border-bottom:1px solid var(--border)!important;gap:0!important;padding:0!important;}
+.stTabs [data-baseweb="tab"]{font-size:13px!important;font-weight:500!important;padding:12px 22px!important;color:var(--t3)!important;border-bottom:2px solid transparent!important;background:transparent!important;margin-bottom:-1px!important;transition:color .15s!important;}
+.stTabs [aria-selected="true"]{color:var(--t1)!important;font-weight:600!important;border-bottom-color:var(--indigo)!important;}
+.stTabs [data-baseweb="tab-panel"]{padding:32px 0 0!important;}
+
+/* ── Buttons ── */
+.stButton>button{background:var(--indigo)!important;color:#fff!important;border:none!important;border-radius:var(--rsm)!important;font-size:13px!important;font-weight:500!important;padding:9px 20px!important;box-shadow:0 1px 4px rgba(99,102,241,.35)!important;transition:background .15s,transform .1s!important;}
+.stButton>button:hover{background:var(--indigo-d)!important;transform:translateY(-1px)!important;}
+.stDownloadButton>button{background:var(--card)!important;color:var(--t1)!important;border:1px solid var(--border)!important;border-radius:var(--r)!important;font-size:13px!important;font-weight:500!important;padding:14px 20px!important;width:100%!important;box-shadow:var(--sh)!important;transition:all .15s!important;}
+.stDownloadButton>button:hover{border-color:var(--indigo)!important;color:var(--indigo)!important;transform:translateY(-2px)!important;box-shadow:var(--sh-md)!important;}
+
+/* ── File uploader ── */
+[data-testid="stFileUploader"] section{background:var(--card)!important;border:2px dashed #C7D2FE!important;border-radius:var(--rlg)!important;padding:44px 32px!important;transition:border-color .2s,background .2s!important;}
+[data-testid="stFileUploader"] section:hover{border-color:var(--indigo)!important;background:var(--indigo-l)!important;}
+[data-testid="stFileUploaderDropzone"]{background:transparent!important;}
+
+/* ── Dataframe ── */
+[data-testid="stDataFrame"]{border:1px solid var(--border)!important;border-radius:var(--r)!important;overflow:hidden!important;box-shadow:var(--sh)!important;}
+
+/* ── Expander ── */
+[data-testid="stExpander"]{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:var(--r)!important;box-shadow:var(--sh)!important;overflow:hidden!important;margin-bottom:12px!important;}
+details>summary{padding:16px 20px!important;font-size:14px!important;font-weight:600!important;color:var(--t1)!important;}
+
+/* ── Alerts ── */
+[data-testid="stInfo"]{background:#EFF6FF!important;border-radius:var(--rsm)!important;border:1px solid #BFDBFE!important;}
+[data-testid="stSuccess"]{background:#ECFDF5!important;border-radius:var(--rsm)!important;border:1px solid #A7F3D0!important;}
+[data-testid="stError"]{background:#FFF1F2!important;border-radius:var(--rsm)!important;border:1px solid #FECDD3!important;}
+[data-testid="stWarning"]{background:#FFFBEB!important;border-radius:var(--rsm)!important;border:1px solid #FDE68A!important;}
+
+/* ── Divider ── */
+hr{border:none!important;border-top:1px solid var(--border)!important;margin:28px 0!important;}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#94A3B8;}
+
+/* ═══ CUSTOM COMPONENTS ═══ */
+
+/* ── Info bar ── */
+.info-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 20px;display:flex;align-items:center;gap:0;margin-bottom:20px;box-shadow:var(--sh);font-family:'Inter',sans-serif;}
+.ib-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);padding:0 14px;}
+.ib-item:first-child{padding-left:0;}
+.ib-icon{font-size:13px;opacity:.7;}
+.ib-label{color:var(--t3);font-weight:500;}
+.ib-val{color:var(--t1);font-weight:600;}
+.ib-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;}
+.ib-live{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green);padding:0 14px;}
+.ib-dot{width:7px;height:7px;border-radius:50%;background:var(--green);}
+
+/* ── Hero ── */
+.hero{background:linear-gradient(135deg,#0A0F1E 0%,#111827 50%,#0D1535 100%);border-radius:var(--rlg);padding:36px 40px;margin-bottom:24px;position:relative;overflow:hidden;border:1px solid rgba(79,110,247,0.18);}
+.hero-glow{position:absolute;top:-60px;right:-40px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(79,110,247,0.16) 0%,transparent 70%);pointer-events:none;}
+.hero-content{position:relative;z-index:1;}
+.hero-eyebrow{font-size:9px;font-weight:700;letter-spacing:3px;color:#4F6EF7;text-transform:uppercase;margin-bottom:10px;}
+.hero-title{font-size:26px;font-weight:800;color:#F1F5F9;letter-spacing:-0.6px;line-height:1.2;margin-bottom:8px;}
+.hero-sub{font-size:13px;color:#4A5568;line-height:1.65;max-width:500px;margin-bottom:18px;}
+.hero-badges{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.hero-badge{background:rgba(79,110,247,0.14);color:#93C5FD;border:1px solid rgba(79,110,247,0.28);font-size:11px;font-weight:600;padding:4px 12px;border-radius:999px;}
+.hero-badge-idle{background:rgba(12,166,120,0.12);color:#6EE7B7;border:1px solid rgba(12,166,120,0.25);font-size:11px;font-weight:600;padding:4px 12px;border-radius:999px;}
+.hero-cid{background:rgba(255,255,255,0.05);color:#64748B;border:1px solid rgba(255,255,255,0.08);font-size:11px;font-weight:500;padding:4px 12px;border-radius:999px;}
+
+/* ── Sidebar ── */
+.sb-brand{padding:22px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px;}
+.sb-logo-row{display:flex;align-items:center;gap:10px;}
+.sb-logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#4F6EF7,#7C3AED);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:white;flex-shrink:0;}
+.sb-brand-name{font-size:14px;font-weight:700;color:#E2E8F0;letter-spacing:-0.2px;}
+.sb-brand-tag{font-size:9px;color:#2D3748;text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;}
+.sb-sect-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1E293B;padding:0 18px;margin-top:20px;margin-bottom:8px;display:block;}
+.sb-fmt-row{display:flex;flex-wrap:wrap;gap:4px;padding:0 18px;}
+.sb-fmt-pill{background:rgba(255,255,255,0.05);color:#374151;border:1px solid rgba(255,255,255,0.07);font-size:10px;padding:3px 7px;border-radius:4px;}
+.sb-footer{padding:20px 18px 16px;font-size:10px;color:#1E293B;}
+
+/* ── KPI cards (rendered inside st.columns) ── */
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px 22px 18px;box-shadow:var(--sh);height:100%;min-height:110px;font-family:'Inter',sans-serif;transition:box-shadow .2s,transform .15s;}
+.kpi-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.kpi-label{font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:var(--t3);}
+.kpi-icon{font-size:18px;opacity:.8;}
+.kpi-value{font-size:26px;font-weight:800;color:var(--t1);letter-spacing:-1px;line-height:1.1;margin-bottom:6px;}
+.kpi-sub{font-size:11px;color:var(--t3);}
+.kpi-green{color:var(--green)!important;}
+.kpi-red{color:var(--red)!important;}
+.kpi-amber{color:var(--amber)!important;}
+.kpi-card-amber{border-left:3px solid var(--amber);}
+.kpi-card-red{border-left:3px solid var(--red);}
+.kpi-card-green{border-left:3px solid var(--green);}
+.kpi-badge-green{background:var(--green-l);color:#065F46;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.3px;}
+.kpi-badge-red{background:var(--red-l);color:#9B1C1C;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;}
+.kpi-badge-amber{background:var(--amber-l);color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;}
+
+/* ── Section header ── */
+.sh{display:flex;align-items:center;gap:10px;margin:28px 0 16px;}
+.sh-pill{width:34px;height:34px;border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sh-indigo{background:#EEF2FF;}.sh-green{background:#E6FAF5;}.sh-red{background:#FFF5F5;}
+.sh-amber{background:#FFFBEB;}.sh-blue{background:#EBF8FF;}.sh-purple{background:#F5F3FF;}
+.sht{font-size:15px;font-weight:700;color:var(--t1);letter-spacing:-0.2px;}
+.shs{font-size:11px;color:var(--t3);margin-top:2px;}
+
+/* ── Section label ── */
+.sect-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin:0 0 14px;}
+
+/* ── Chart card ── */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--sh);}
+
+/* ── Table card ── */
+.tbl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:0;box-shadow:var(--sh);overflow:hidden;}
+.tbl-head{display:grid;padding:10px 16px;background:#F8FAFC;border-bottom:1px solid var(--border);}
+.tbl-row{display:grid;padding:10px 16px;border-bottom:1px solid #F8FAFC;font-size:13px;color:var(--t2);transition:background .1s;}
+.tbl-row:hover{background:#FAFBFC;}
+.tbl-row:last-child{border-bottom:none;}
+.tbl-hcell{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t3);}
+.tbl-total{display:grid;padding:10px 16px;background:#F8FAFC;border-top:1px solid var(--border);font-size:13px;font-weight:700;color:var(--t1);}
+
+/* ── NSF alert card ── */
+.nsf-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);}
+.nsf-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.nsf-title{font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t3);}
+.nsf-warn{font-size:16px;}
+.nsf-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F8FAFC;font-size:13px;}
+.nsf-row:last-child{border-bottom:none;}
+.nsf-name{color:var(--t2);}
+.nsf-count{font-weight:700;color:var(--t1);}
+.nsf-count.red{color:var(--red);}
+.nsf-big{font-size:28px;font-weight:800;color:var(--red);letter-spacing:-1px;}
+
+/* ── Empty state ── */
+.empty-wrap{text-align:center;padding:56px 24px 44px;}
+.empty-icon-ring{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#EEF2FF,#E0E7FF);border:2px solid #C7D2FE;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;}
+.empty-icon-inner{font-size:36px;line-height:1;}
+.es-title{font-size:22px;font-weight:800;color:var(--t1);margin-bottom:10px;letter-spacing:-0.4px;}
+.es-sub{font-size:13px;color:var(--t3);max-width:400px;margin:0 auto 32px;line-height:1.7;}
+.es-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:520px;margin:0 auto;text-align:left;}
+.es-card{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-left:3px solid transparent;}
+.es-c1{border-left-color:#4F6EF7;}.es-c2{border-left-color:#0CA678;}.es-c3{border-left-color:#D97706;}.es-c4{border-left-color:#3182CE;}
+.esc-icon{font-size:20px;margin-bottom:7px;}
+.esc-t{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:4px;}
+.esc-s{font-size:11px;color:var(--t3);line-height:1.55;}
+
+/* ── Risk ── */
+.risk-wrap{display:flex;align-items:center;gap:14px;padding:18px 22px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:14px;}
+.risk-badge{padding:5px 14px;border-radius:999px;font-size:12px;font-weight:700;}
+.risk-low{background:var(--green-l);color:#065F46;}.risk-med{background:var(--amber-l);color:#92400E;}.risk-high{background:var(--red-l);color:#9B1C1C;}
+.risk-score{font-size:26px;font-weight:800;color:var(--t1);margin-left:auto;letter-spacing:-1px;}
+.risk-lbl{font-size:10px;color:var(--t3);text-align:right;margin-top:1px;}
+
+/* ── Insight ── */
+.ins-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--indigo);border-radius:var(--r);padding:14px 18px;box-shadow:var(--sh);margin-bottom:9px;}
+.ins-title{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:3px;}
+.ins-body{font-size:12px;color:var(--t2);line-height:1.55;}
+
+/* ── Lender bars ── */
+.lb-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 20px;box-shadow:var(--sh);}
+.lb-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #F8FAFC;}
+.lb-row:last-child{border-bottom:none;}
+.lb-name{font-size:12px;font-weight:500;color:var(--t1);min-width:140px;}
+.lb-bar-wrap{flex:1;background:#F1F5F9;border-radius:999px;height:5px;}
+.lb-bar{height:5px;border-radius:999px;background:linear-gradient(90deg,var(--indigo),var(--purple));}
+.lb-amt{font-size:12px;font-weight:700;color:var(--t1);min-width:90px;text-align:right;}
+
+/* ── Export ── */
+.exp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:10px;}
+.exp-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px 22px;text-align:center;box-shadow:var(--sh);transition:all .18s;cursor:pointer;}
+.exp-card:hover{border-color:var(--indigo);box-shadow:var(--sh-md);transform:translateY(-2px);}
+.exp-icon{font-size:32px;margin-bottom:12px;}
+.exp-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:4px;}
+.exp-sub{font-size:11px;color:var(--t3);}
 </style>
 """
 
 
-# ============================================================================
-# SAFE DATAFRAME DISPLAY
-# Strips any non-scalar objects (e.g. Streamlit DeltaGenerator) before
-# passing a DataFrame to st.dataframe().  Selects only named columns when
-# provided so the table always shows clean, relevant data.
-# ============================================================================
+# ── UI helpers ─────────────────────────────────────────────────────────────────
 
-def _safe_show(df: pd.DataFrame, cols: list[str] | None = None) -> None:
-    """
-    Display a DataFrame safely — no DeltaGenerator leakage, no crashes.
-
-    Parameters
-    ----------
-    df   : DataFrame to display
-    cols : Optional explicit list of columns to show (in order).
-           Only columns that actually exist in df are kept.
-    """
-    if df is None or df.empty:
-        return
-
-    # Select columns
-    if cols:
-        present = [c for c in cols if c in df.columns]
-        df = df[present].copy() if present else df.copy()
-    else:
-        df = df.copy()
-
-    # Cast every column to a safe type
-    for col in df.columns:
-        try:
-            numeric = pd.to_numeric(df[col], errors="coerce")
-            if numeric.notna().sum() > 0 and df[col].dtype != object:
-                df[col] = numeric
-            else:
-                df[col] = df[col].astype(str)
-        except Exception:
-            df[col] = df[col].astype(str)
-
-    st.dataframe(df, use_container_width=True, hide_index=True)
+def _sh(icon: str, title: str, sub: str = "", color: str = "indigo") -> None:
+    sub_html = f'<div class="shs">{sub}</div>' if sub else ""
+    st.markdown(f"""
+    <div class="sh">
+      <div class="sh-pill sh-{color}">{icon}</div>
+      <div><div class="sht">{title}</div>{sub_html}</div>
+    </div>""", unsafe_allow_html=True)
 
 
-# ============================================================================
-# UI HELPERS
-# ============================================================================
-
-def render_header():
-    st.markdown(DARK_THEME_CSS, unsafe_allow_html=True)
-    col1, col2 = st.columns([1, 8])
-    with col1:
-        try:
-            st.image("CapInfBack.png", width=120)
-        except Exception:
-            pass
-    with col2:
-        st.markdown("""
-        <div style="padding-top:18px;">
-            <div style="font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#e8e8e8;">
-                Orbit Optix
-            </div>
-            <div style="font-family:'Inter',sans-serif;font-size:11px;color:#555;margin-top:2px;">
-                Financial Intelligence &amp; Bank Statement Analysis
-            </div>
-        </div>""", unsafe_allow_html=True)
+def render_header() -> None:
+    st.markdown(THEME, unsafe_allow_html=True)
 
 
 def render_sidebar() -> tuple[bool, str]:
     with st.sidebar:
-        st.markdown("### ⚙️ Configuration")
+        st.markdown("""
+        <div class="sb-brand">
+          <div class="sb-logo-row">
+            <div class="sb-logo-mark">O</div>
+            <div>
+              <div class="sb-brand-name">Orbit Optix</div>
+              <div class="sb-brand-tag">Financial Intelligence</div>
+            </div>
+          </div>
+        </div>""", unsafe_allow_html=True)
+        st.markdown('<span class="sb-sect-label">CLIENT</span>', unsafe_allow_html=True)
+        client_id = st.text_input("cid", placeholder="e.g. SMITH-001",
+                                  label_visibility="collapsed")
+        st.markdown('<span class="sb-sect-label" style="margin-top:20px">SETTINGS</span>',
+                    unsafe_allow_html=True)
         debug_mode = st.toggle("Debug Mode", value=False,
-                               help="Show OCR text and detailed parser output")
-        st.divider()
-        st.markdown("### 🔑 Client ID")
-        client_id = st.text_input("Client ID", placeholder="e.g. SMITH-001")
-        st.divider()
-        st.markdown("### 📄 Supported Formats")
-        st.caption("• PDF (digital & scanned)\n• Images (PNG, JPG)\n• Spreadsheets (CSV, XLSX)")
-        st.divider()
-        st.markdown("### 🌍 Languages")
-        st.caption("• English\n• French\n• Spanish\n(Auto-detected & translated)")
+                               help="Show raw OCR text and parser output")
+        st.markdown('<span class="sb-sect-label" style="margin-top:20px">FORMATS</span>',
+                    unsafe_allow_html=True)
+        st.markdown("""
+        <div class="sb-fmt-row">
+          <span class="sb-fmt-pill">PDF</span><span class="sb-fmt-pill">PNG</span>
+          <span class="sb-fmt-pill">JPG</span><span class="sb-fmt-pill">CSV</span>
+          <span class="sb-fmt-pill">XLSX</span>
+        </div>
+        <div class="sb-fmt-row" style="margin-top:5px">
+          <span class="sb-fmt-pill">English</span><span class="sb-fmt-pill">French</span>
+        </div>""", unsafe_allow_html=True)
+        st.markdown('<div class="sb-footer">Orbit Optix v3.0 · Capital Infusion</div>',
+                    unsafe_allow_html=True)
     return debug_mode, client_id
 
 
-def render_empty_state():
-    st.markdown("---")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<h2 style='text-align:center;margin-top:40px;'>Welcome to Orbit Optix</h2>",
-                    unsafe_allow_html=True)
-        st.markdown(
-            "<p style='text-align:center;font-size:16px;color:#86868b;'>"
-            "Upload bank statements to begin analysis</p>",
-            unsafe_allow_html=True,
-        )
-        st.markdown("---")
-        ca, cb = st.columns(2)
-        with ca:
-            st.markdown("#### ✨ Features")
-            st.markdown("• Multi-format OCR\n• Multi-bank detection\n• Risk Analysis\n• Export Reports")
-        with cb:
-            st.markdown("#### 🔒 Security")
-            st.markdown("• Local Processing\n• No Cloud Upload\n• HIPAA Ready\n• Enterprise Grade")
+def render_info_bar(client_id: str, n: int, results_df) -> None:
+    date_range = ""
+    if not results_df.empty and "Statement Date" in results_df.columns:
+        valid = results_df["Statement Date"].dropna()
+        if len(valid) >= 2:
+            date_range = f"{valid.iloc[0].strftime('%b %Y')} – {valid.iloc[-1].strftime('%b %Y')}"
+        elif len(valid) == 1:
+            date_range = valid.iloc[0].strftime("%b %Y")
+    cid_html = (f'<div class="ib-item"><span class="ib-icon">👤</span>'
+                f'<span class="ib-label">Client:</span>'
+                f'<span class="ib-val">{client_id}</span></div>'
+                f'<div class="ib-sep"></div>' if client_id else "")
+    dr_html = (f'<div class="ib-item"><span class="ib-icon">📅</span>'
+               f'<span class="ib-label">Range:</span>'
+               f'<span class="ib-val">{date_range}</span></div>'
+               f'<div class="ib-sep"></div>' if date_range else "")
+    st.markdown(f"""
+    <div class="info-bar">
+      {cid_html}
+      <div class="ib-item">
+        <span class="ib-icon">🏢</span>
+        <span class="ib-label">Platform:</span>
+        <span class="ib-val">Orbit Optix</span>
+      </div>
+      <div class="ib-sep"></div>
+      {dr_html}
+      <div class="ib-live"><div class="ib-dot"></div>{n} Statement{"s" if n != 1 else ""} Loaded</div>
+    </div>""", unsafe_allow_html=True)
 
 
-def render_kpis(
-    total_revenue, total_credits, total_debits,
-    total_lender_debits, total_lender_credits, total_cash_flow,
-    withholding_rate, nsf_count=0, avg_daily_balance=0.0, pos_count=0,
-):
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Monthly Revenue", f"${total_revenue:,.2f}")
-    c2.metric("Total Credits",         f"${total_credits:,.2f}")
-    c3.metric("Total Debits",          f"${total_debits:,.2f}")
-    c4.metric("Cash Flow",             f"${total_cash_flow:,.2f}")
-
-    c5, c6, c7, c8, c9, c10 = st.columns(6)
-    c5.metric("Lender Debits",    f"${total_lender_debits:,.2f}")
-    c6.metric("Lender Credits",   f"${total_lender_credits:,.2f}")
-    c7.metric("Withholding Rate", f"{withholding_rate:.2f}%")
-    c8.metric("NSF Count",        nsf_count)
-    c9.metric("Avg Daily Balance",f"${avg_daily_balance:,.2f}")
-    c10.metric("POS Count",       pos_count)
+def render_hero(n_files: int = 0, client_id: str = "") -> None:
+    badge = (f'<span class="hero-badge">📁 {n_files} file{"s" if n_files != 1 else ""} loaded</span>'
+             if n_files else '<span class="hero-badge-idle">Upload to begin</span>')
+    cid_badge = f'<span class="hero-cid">Client: {client_id}</span>' if client_id else ""
+    st.markdown(f"""
+    <div class="hero">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <div class="hero-eyebrow">ORBIT OPTIX · FINANCIAL INTELLIGENCE</div>
+        <div class="hero-title">Bank Statement Analysis</div>
+        <div class="hero-sub">Upload statements to generate reports, lender insights, and risk assessments.</div>
+        <div class="hero-badges">{badge}{cid_badge}</div>
+      </div>
+    </div>""", unsafe_allow_html=True)
 
 
-def render_chart(results_df: pd.DataFrame):
-    st.markdown("### 📈 Financial Overview")
-    chart_df = results_df.melt(
-        id_vars="Statement",
-        value_vars=["Total Credits", "Total Debits",
-                    "Total Lender Debits", "Total Lender Credits"],
-        var_name="Metric", value_name="Amount",
-    )
-    fig = px.bar(
-        chart_df, x="Statement", y="Amount", color="Metric",
-        barmode="group",
-        color_discrete_map={
-            "Total Credits":       "#4a9eff",
-            "Total Debits":        "#e87c2a",
-            "Total Lender Debits": "#9b6dff",
-            "Total Lender Credits":"#34c759",
-        },
-        template="plotly_dark",
-    )
+def render_empty_state() -> None:
+    st.markdown("""
+    <div class="empty-wrap">
+      <div class="empty-icon-ring"><div class="empty-icon-inner">📊</div></div>
+      <div class="es-title">Drop your bank statements above</div>
+      <div class="es-sub">PDF, images, CSV, or Excel — Orbit Optix extracts, analyses, and scores everything automatically.</div>
+      <div class="es-grid">
+        <div class="es-card es-c1"><div class="esc-icon">🔍</div><div class="esc-t">Smart OCR</div><div class="esc-s">Multi-format extraction with automatic language detection</div></div>
+        <div class="es-card es-c2"><div class="esc-icon">🏦</div><div class="esc-t">Lender Detection</div><div class="esc-s">Identifies MCA and financing activity across all statements</div></div>
+        <div class="es-card es-c3"><div class="esc-icon">⚡</div><div class="esc-t">Risk Scoring</div><div class="esc-s">Instant underwriting risk with NSF and withholding analysis</div></div>
+        <div class="es-card es-c4"><div class="esc-icon">📤</div><div class="esc-t">Export Ready</div><div class="esc-s">Download statement breakdowns and summary reports as CSV</div></div>
+      </div>
+    </div>""", unsafe_allow_html=True)
+
+
+def render_kpis(total_revenue, total_credits, total_debits,
+                total_lender_debits, total_lender_credits, total_cash_flow,
+                withholding_rate, nsf_count=0, avg_daily_balance=0.0,
+                pos_count=0, n: int = 1) -> None:
+    """4-card KPI row matching the reference design."""
+    avg_rev  = total_revenue / max(n, 1)
+    cf_pos   = total_cash_flow >= 0
+    cf_sign  = "+" if cf_pos else ""
+    cf_cls   = "kpi-green" if cf_pos else "kpi-red"
+    nsf_cls  = "kpi-red"   if nsf_count > 0 else "kpi-green"
+    nsf_card = "kpi-card-red" if nsf_count > 2 else ("kpi-card-amber" if nsf_count > 0 else "")
+
+    c1, c2, c3, c4 = st.columns(4, gap="small")
+
+    with c1:
+        st.markdown(f"""
+        <div class="kpi-card kpi-card-green">
+          <div class="kpi-top"><span class="kpi-label">Total Revenue</span></div>
+          <div class="kpi-value">${total_revenue:,.2f}</div>
+          <div class="kpi-sub">Avg: ${avg_rev:,.2f}/mo</div>
+        </div>""", unsafe_allow_html=True)
+
+    with c2:
+        badge_cls, badge_txt = ("kpi-badge-green", "Positive") if cf_pos else ("kpi-badge-red", "Negative")
+        st.markdown(f"""
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Net Cash Flow</span>
+            <span class="{badge_cls}">{badge_txt}</span>
+          </div>
+          <div class="kpi-value {cf_cls}">{cf_sign}${abs(total_cash_flow):,.2f}</div>
+          <div class="kpi-sub">Credits minus debits</div>
+        </div>""", unsafe_allow_html=True)
+
+    with c3:
+        st.markdown(f"""
+        <div class="kpi-card">
+          <div class="kpi-top"><span class="kpi-label">Existing Debt Exposure</span></div>
+          <div class="kpi-value">${total_lender_debits:,.2f}</div>
+          <div class="kpi-sub">Withholding rate: {withholding_rate:.1f}%</div>
+        </div>""", unsafe_allow_html=True)
+
+    with c4:
+        warn = "⚠️" if nsf_count > 0 else "✅"
+        st.markdown(f"""
+        <div class="kpi-card {nsf_card}">
+          <div class="kpi-top">
+            <span class="kpi-label">Risk Metrics</span>
+            <span style="font-size:16px">{warn}</span>
+          </div>
+          <div class="kpi-value {nsf_cls}">{nsf_count} NSFs</div>
+          <div class="kpi-sub">POS transactions: {pos_count}</div>
+        </div>""", unsafe_allow_html=True)
+
+
+def render_chart(results_df: pd.DataFrame) -> None:
+    if results_df.empty:
+        return
+
+    date_col = (results_df["Statement Date"].dt.strftime("%b %Y")
+                if "Statement Date" in results_df.columns else results_df["Statement"])
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(name="Credits", x=date_col, y=results_df["Total Credits"],
+                         marker_color="#6366F1", marker_line_width=0))
+    fig.add_trace(go.Bar(name="Debits",  x=date_col, y=results_df["Total Debits"],
+                         marker_color="#F43F5E", marker_line_width=0))
+    if "Total Lender Debits" in results_df.columns:
+        fig.add_trace(go.Bar(name="Lender Debits", x=date_col,
+                             y=results_df["Total Lender Debits"],
+                             marker_color="#8B5CF6", marker_line_width=0))
     fig.update_layout(
-        height=420, hovermode="x unified",
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#111111",
-        font=dict(color="#666", family="Inter", size=11),
-        xaxis=dict(showgrid=False, tickangle=-20, linecolor="#2a2a2a"),
-        yaxis=dict(showgrid=True, gridcolor="#1e1e1e", linecolor="#2a2a2a"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                    xanchor="left", x=0, bgcolor="rgba(0,0,0,0)"),
-        margin=dict(t=40, b=20, l=10, r=10),
+        barmode="group", height=290,
+        plot_bgcolor="white", paper_bgcolor="white",
+        font=dict(family="Inter", size=11, color="#64748B"),
+        margin=dict(t=10, b=10, l=0, r=0),
+        legend=dict(orientation="h", y=1.12, x=0, bgcolor="rgba(0,0,0,0)", font_size=11),
+        xaxis=dict(showgrid=False, linecolor="#F1F5F9", tickcolor="#F1F5F9"),
+        yaxis=dict(showgrid=True, gridcolor="#F8FAFC", linecolor="#F8FAFC",
+                   tickprefix="$", tickformat=",.0f"),
+        hoverlabel=dict(bgcolor="#0F172A", font_color="white", font_size=12),
     )
-    st.plotly_chart(fig, use_container_width=True)
+
+    cash_flow = results_df["Total Credits"] - results_df["Total Debits"]
+    fig2 = go.Figure()
+    fig2.add_trace(go.Scatter(
+        x=date_col, y=cash_flow, mode="lines+markers",
+        line=dict(color="#10B981", width=2.5),
+        marker=dict(color="#10B981", size=8, line=dict(color="white", width=2)),
+        fill="tozeroy", fillcolor="rgba(16,185,129,0.07)",
+    ))
+    fig2.update_layout(
+        height=290, plot_bgcolor="white", paper_bgcolor="white",
+        font=dict(family="Inter", size=11, color="#64748B"),
+        margin=dict(t=10, b=10, l=0, r=0), showlegend=False,
+        xaxis=dict(showgrid=False, linecolor="#F1F5F9"),
+        yaxis=dict(showgrid=True, gridcolor="#F8FAFC", linecolor="#F8FAFC",
+                   tickprefix="$", tickformat=",.0f"),
+    )
+
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+        _sh("📊", "Revenue vs Debits", "Monthly comparison across statements")
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+        _sh("📈", "Net Cash Flow", "Credits minus debits per period")
+        st.plotly_chart(fig2, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
-# ============================================================================
-# DATA PREPARATION
-# ============================================================================
+# ── Data helpers (unchanged) ───────────────────────────────────────────────────
 
 def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Drop any column whose first non-null value is not a plain Python scalar.
-    Prevents Streamlit DeltaGenerator objects from surviving into lender
-    detection or display.
-    """
     if df.empty:
         return df
     keep = []
@@ -281,124 +536,93 @@ def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _prep_raw_df(raw_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Normalise a raw parsed DataFrame:
-      - Rename common column aliases → Date / Description / Debit / Credit / Amount
-      - Force numeric types on money columns
-      - Split a single Amount column into Debit / Credit where missing
-      - Strip any non-scalar columns (DeltaGenerator safety net)
-      - Run fix_lender_direction to correct misclassified lender rows
-    """
     raw_df = raw_df.copy()
     raw_df.columns = [str(c).strip() for c in raw_df.columns]
-
     col_map: dict[str, str] = {}
     for col in raw_df.columns:
         lower = col.lower()
-        if "date" in lower:
-            col_map[col] = "Date"
-        elif "description" in lower or "memo" in lower or "details" in lower:
-            col_map[col] = "Description"
-        elif "withdrawal" in lower or "debit" in lower:
-            col_map[col] = "Debit"
-        elif "deposit" in lower or "credit" in lower:
-            col_map[col] = "Credit"
-        elif "amount" in lower:
-            col_map[col] = "Amount"
+        if "date" in lower:                                          col_map[col] = "Date"
+        elif "description" in lower or "memo" in lower or "details" in lower: col_map[col] = "Description"
+        elif "withdrawal" in lower or "debit" in lower:             col_map[col] = "Debit"
+        elif "deposit" in lower or "credit" in lower:               col_map[col] = "Credit"
+        elif "amount" in lower:                                      col_map[col] = "Amount"
     raw_df.rename(columns=col_map, inplace=True)
-
-    # Ensure required columns exist
     for col in ["Date", "Description", "Debit", "Credit", "Amount"]:
         if col not in raw_df.columns:
             raw_df[col] = "" if col in ("Date", "Description") else 0.0
-
-    # Force numeric money columns
     for col in ["Debit", "Credit", "Amount", "Balance"]:
         if col in raw_df.columns:
             raw_df[col] = raw_df[col].apply(clean_money)
-
-    # Split Amount → Debit / Credit when both are zero
     if all(c in raw_df.columns for c in ["Amount", "Debit", "Credit"]):
         neg = (raw_df["Debit"] == 0) & (raw_df["Credit"] == 0) & (raw_df["Amount"] < 0)
         pos = (raw_df["Debit"] == 0) & (raw_df["Credit"] == 0) & (raw_df["Amount"] > 0)
         raw_df.loc[neg, "Debit"]  = raw_df["Amount"].abs()
         raw_df.loc[pos, "Credit"] = raw_df["Amount"].abs()
-
-    # Safety: strip non-scalar columns
     raw_df = _sanitize_df(raw_df)
-
     return fix_lender_direction(raw_df)
 
 
-# ============================================================================
-# SINGLE-FILE PROCESSING
-# ============================================================================
+def _safe_show(df: pd.DataFrame, cols: list[str] | None = None) -> None:
+    if df is None or df.empty:
+        return
+    if cols:
+        present = [c for c in cols if c in df.columns]
+        df = df[present].copy() if present else df.copy()
+    else:
+        df = df.copy()
+    for col in df.columns:
+        try:
+            numeric = pd.to_numeric(df[col], errors="coerce")
+            if numeric.notna().sum() > 0 and df[col].dtype != object:
+                df[col] = numeric
+            else:
+                df[col] = df[col].astype(str)
+        except Exception:
+            df[col] = df[col].astype(str)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
-def process_file(
-    uploaded_file,
-    all_filenames: list[str],
-    debug_mode: bool,
-) -> tuple[dict, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Process one uploaded file.
 
-    Returns
-    -------
-    (statement_result_dict, temp_df, lender_rows, lender_credit_rows, flagged_df)
-    """
+# ── Single file processor (unchanged logic) ────────────────────────────────────
+
+def process_file(uploaded_file, all_filenames, debug_mode):
     name = uploaded_file.name.lower()
     raw_df = pd.DataFrame()
     original_text = translated_text = ""
     charges_only_total = 0.0
 
     with st.status(f"Processing {uploaded_file.name}…", expanded=False) as status:
-
-        # ── Load & extract text ──────────────────────────────────────────
         if name.endswith(".csv"):
             raw_df = pd.read_csv(uploaded_file)
-
         elif name.endswith((".xlsx", ".xls")):
             raw_df = pd.read_excel(uploaded_file)
-
         elif name.endswith(".pdf"):
             status.update(label="Extracting PDF…", state="running")
-            original_text  = extract_text_from_pdf(uploaded_file, debug_mode)
-            translated_text = normalize_transaction_text(
-                translate_to_english(original_text)
-            )
+            original_text   = extract_text_from_pdf(uploaded_file, debug_mode)
+            translated_text = normalize_transaction_text(translate_to_english(original_text))
             _, charges_only_total = extract_charges_only(translated_text)
             raw_df = parse_universal_bank_rows(translated_text)
             if raw_df.empty:
                 raw_df = parse_ocr_transactions(translated_text)
-
-        else:  # image (PNG / JPG)
+        else:
             status.update(label="Processing image…", state="running")
-            original_text  = extract_text_from_image(uploaded_file)
-            translated_text = normalize_transaction_text(
-                translate_to_english(original_text)
-            )
+            original_text   = extract_text_from_image(uploaded_file)
+            translated_text = normalize_transaction_text(translate_to_english(original_text))
             raw_df = parse_universal_bank_rows(translated_text)
             if raw_df.empty:
                 raw_df = parse_ocr_transactions(translated_text)
 
-        # ── Debug: show OCR output ───────────────────────────────────────
         if debug_mode and translated_text:
             with st.expander("Debug: OCR Output"):
                 st.text_area("Extracted Text", translated_text, height=200, disabled=True)
 
-        # ── Bank router: extract summary totals ──────────────────────────
         file_summary = route_and_extract(original_text, translated_text, uploaded_file)
-
-        # ── Normalise raw DataFrame ──────────────────────────────────────
         raw_df  = _prep_raw_df(raw_df) if not raw_df.empty else pd.DataFrame()
         temp_df = prepare_dataframe(raw_df) if not raw_df.empty else pd.DataFrame()
 
         if debug_mode and not raw_df.empty:
-            debug_cols = [c for c in ["Date", "Description", "Debit", "Credit",
-                                      "Amount", "Balance"] if c in raw_df.columns]
+            debug_cols = [c for c in ["Date","Description","Debit","Credit","Amount","Balance"] if c in raw_df.columns]
             st.dataframe(raw_df[debug_cols], use_container_width=True)
 
-        # ── Revenue / credits / debits ───────────────────────────────────
         if file_summary["credits_amount"] > 0 or file_summary["debits_amount"] > 0:
             file_revenue      = file_summary["credits_amount"]
             file_credits      = file_summary["credits_amount"]
@@ -412,11 +636,9 @@ def process_file(
             file_credit_count = int(len(temp_df[temp_df["Credit"] > 0])) if not temp_df.empty and "Credit" in temp_df.columns else 0
             file_debit_count  = int(len(temp_df[temp_df["Debit"]  > 0])) if not temp_df.empty and "Debit"  in temp_df.columns else 0
 
-        # ── Lender detection ─────────────────────────────────────────────
-        # Sanitize first so no DeltaGenerator survives into detection
         if not raw_df.empty:
             clean_df = _sanitize_df(raw_df)
-            lender_rows,       lender_debit_total,  _ = get_lender_debits(clean_df, file_revenue)
+            lender_rows,        lender_debit_total,  _ = get_lender_debits(clean_df, file_revenue)
             lender_credit_rows, lender_credit_total    = get_lender_credits(clean_df)
         else:
             lender_rows = lender_credit_rows = pd.DataFrame()
@@ -424,29 +646,19 @@ def process_file(
 
         withholding_rate = (lender_debit_total / file_revenue * 100) if file_revenue > 0 else 0.0
 
-        # ── Flagged / suspicious transactions ────────────────────────────
-        SUSPICIOUS_KEYWORDS = [
-            "SQ", "SQUARE", "PAYPAL", "PAY PAL", "STRIPE",
-            "SHOPIFY", "INTUIT", "CLOVER", "TOAST",
-        ]
+        SUSPICIOUS_KEYWORDS = ["SQ","SQUARE","PAYPAL","PAY PAL","STRIPE","SHOPIFY","INTUIT","CLOVER","TOAST"]
         flagged: list[dict] = []
         if translated_text:
             for line in translated_text.split("\n"):
                 upper = str(line).upper()
                 for kw in SUSPICIOUS_KEYWORDS:
                     if re.search(r"\b" + re.escape(kw) + r"\b", upper):
-                        amounts = re.findall(
-                            r"-?\$?\d{1,3}(?:,\d{3})*\.\d{2}|-?\$?\d+\.\d{2}", line
-                        )
-                        flagged.append({
-                            "Matched Keyword": kw,
-                            "Flagged Line":    line,
-                            "Detected Amount": abs(clean_money(amounts[0])) if amounts else 0.0,
-                        })
+                        amounts = re.findall(r"-?\$?\d{1,3}(?:,\d{3})*\.\d{2}|-?\$?\d+\.\d{2}", line)
+                        flagged.append({"Matched Keyword": kw, "Flagged Line": line,
+                                        "Detected Amount": abs(clean_money(amounts[0])) if amounts else 0.0})
                         break
         flagged_df = pd.DataFrame(flagged)
 
-        # ── Per-statement metrics ────────────────────────────────────────
         stmt_nsf = count_nsf(temp_df, original_text)
         stmt_pos = count_pos(temp_df)
 
@@ -459,44 +671,41 @@ def process_file(
         else:
             stmt_avg_balance = float(avg_bal_result)
 
-        statement_date = extract_statement_date(
-            original_text, uploaded_file.name, all_filenames
-        )
-
+        statement_date = extract_statement_date(original_text, uploaded_file.name, all_filenames)
         status.update(label="Complete", state="complete")
 
-    result = {
-        "Statement":            uploaded_file.name,
-        "Statement Date":       statement_date,
-        "Total Monthly Revenue":file_revenue,
-        "Total Credits":        file_credits,
-        "Total Debits":         file_debits,
-        "Total Charges Only":   charges_only_total,
-        "Total Lender Debits":  lender_debit_total,
-        "Total Lender Credits": lender_credit_total,
-        "Withholding Rate":     withholding_rate,
-        "Credit Transactions":  file_credit_count,
-        "Debit Transactions":   file_debit_count,
-        "Lender Transactions":  len(lender_rows),
-        "NSF Count":            stmt_nsf,
-        "Avg Daily Balance":    stmt_avg_balance,
-        "POS Count":            stmt_pos,
-    }
-
-    return result, temp_df, lender_rows, lender_credit_rows, flagged_df
+    return {
+        "Statement":             uploaded_file.name,
+        "Statement Date":        statement_date,
+        "Total Monthly Revenue": file_revenue,
+        "Total Credits":         file_credits,
+        "Total Debits":          file_debits,
+        "Total Charges Only":    charges_only_total,
+        "Total Lender Debits":   lender_debit_total,
+        "Total Lender Credits":  lender_credit_total,
+        "Withholding Rate":      withholding_rate,
+        "Credit Transactions":   file_credit_count,
+        "Debit Transactions":    file_debit_count,
+        "Lender Transactions":   len(lender_rows),
+        "NSF Count":             stmt_nsf,
+        "Avg Daily Balance":     stmt_avg_balance,
+        "POS Count":             stmt_pos,
+    }, temp_df, lender_rows, lender_credit_rows, flagged_df
 
 
-# ============================================================================
-# MAIN APPLICATION
-# ============================================================================
+# ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
     render_header()
     debug_mode, client_id = render_sidebar()
 
-    st.markdown("### 📁 Upload Bank Statements")
+    # ── Hero ──────────────────────────────────────────────────────────────────
+    render_hero(client_id=client_id)
+
+    # ── Upload ────────────────────────────────────────────────────────────────
+    _sh("📁", "Upload Statements", "PDF, images, CSV, or Excel files")
     uploaded_files = st.file_uploader(
-        "Select bank statement files",
+        "Drop bank statement files here",
         type=["csv", "xlsx", "xls", "pdf", "png", "jpg", "jpeg"],
         accept_multiple_files=True,
         label_visibility="collapsed",
@@ -507,37 +716,32 @@ def main():
         return
 
     try:
-        all_filenames         = [f.name for f in uploaded_files]
-        statement_results:    list[dict]                  = []
-        all_dataframes:       list[pd.DataFrame]          = []
-        all_lender_data:      dict[str, pd.DataFrame]     = {}
-        all_lender_credit_data: dict[str, pd.DataFrame]   = {}
-        all_flagged_data:     dict[str, pd.DataFrame]     = {}
+        all_filenames           = [f.name for f in uploaded_files]
+        statement_results       = []
+        all_dataframes          = []
+        all_lender_data         = {}
+        all_lender_credit_data  = {}
+        all_flagged_data        = {}
 
-        for uploaded_file in uploaded_files:
+        for uf in uploaded_files:
             result, temp_df, lender_rows, lender_credit_rows, flagged_df = process_file(
-                uploaded_file, all_filenames, debug_mode
+                uf, all_filenames, debug_mode
             )
             statement_results.append(result)
             if not temp_df.empty:
-                temp_df["Statement"] = uploaded_file.name
+                temp_df["Statement"] = uf.name
                 all_dataframes.append(temp_df)
-            all_lender_data[uploaded_file.name]        = lender_rows
-            all_lender_credit_data[uploaded_file.name] = lender_credit_rows
-            all_flagged_data[uploaded_file.name]       = flagged_df
+            all_lender_data[uf.name]        = lender_rows
+            all_lender_credit_data[uf.name] = lender_credit_rows
+            all_flagged_data[uf.name]       = flagged_df
 
-        # ── Build results_df, sort by statement date ─────────────────────
+        # ── Build & sort results_df ─────────────────────────────────────────
         results_df = pd.DataFrame(statement_results)
         if "Total Lender Credits" not in results_df.columns:
             results_df["Total Lender Credits"] = 0.0
-        results_df["Statement Date"] = pd.to_datetime(
-            results_df["Statement Date"], errors="coerce"
-        )
-        results_df = results_df.sort_values(
-            "Statement Date", na_position="last"
-        ).reset_index(drop=True)
+        results_df["Statement Date"] = pd.to_datetime(results_df["Statement Date"], errors="coerce")
+        results_df = results_df.sort_values("Statement Date", na_position="last").reset_index(drop=True)
 
-        # Fix wrong-year assignments (gap > 6 months → subtract a year)
         for i in range(1, len(results_df)):
             curr = results_df.at[i,     "Statement Date"]
             prev = results_df.at[i - 1, "Statement Date"]
@@ -546,18 +750,14 @@ def main():
             gap = (curr.year - prev.year) * 12 + (curr.month - prev.month)
             if gap > 6:
                 results_df.at[i, "Statement Date"] = curr - pd.DateOffset(years=1)
-        results_df = results_df.sort_values(
-            "Statement Date", na_position="last"
-        ).reset_index(drop=True)
+        results_df = results_df.sort_values("Statement Date", na_position="last").reset_index(drop=True)
 
         if results_df.empty:
-            st.error("No statement data detected.")
+            st.error("No statement data could be detected.")
             return
 
-        st.success("✅ All statements processed successfully")
-        st.divider()
-
-        # ── Aggregate totals ─────────────────────────────────────────────
+        # ── Aggregate totals ────────────────────────────────────────────────
+        n                   = len(results_df)
         total_revenue       = results_df["Total Monthly Revenue"].sum()
         total_credits       = results_df["Total Credits"].sum()
         total_debits        = results_df["Total Debits"].sum()
@@ -567,77 +767,55 @@ def main():
         withholding_rate    = (total_lender_debits / total_revenue * 100) if total_revenue > 0 else 0.0
         avg_daily_balance   = float(results_df["Avg Daily Balance"].mean())
 
-        combined_df = (
-            pd.concat(all_dataframes, ignore_index=True)
-            if all_dataframes else pd.DataFrame()
-        )
-        # NSF — uses fixed detect_nsf() with strict patterns (no boilerplate hits)
-        nsf_count = (
-            int(combined_df["NSF Flag"].sum())
-            if not combined_df.empty and "NSF Flag" in combined_df.columns else 0
-        )
-        # POS — word-boundary match; avoids hitting POS inside DEPOSIT etc.
+        combined_df = pd.concat(all_dataframes, ignore_index=True) if all_dataframes else pd.DataFrame()
+        nsf_count = int(combined_df["NSF Flag"].sum()) if not combined_df.empty and "NSF Flag" in combined_df.columns else 0
         pos_count = (
-            int(
-                combined_df["Description"]
-                .astype(str).str.upper()
-                .str.contains(r"POS", regex=True)
-                .sum()
-            )
+            int(combined_df["Description"].astype(str).str.upper().str.contains(r"POS", regex=True).sum())
             if not combined_df.empty and "Description" in combined_df.columns else 0
         )
 
-        # ── Forward metrics to lender suggestion app ─────────────────────
+        # ── Lender app forwarding ───────────────────────────────────────────
         try:
             resp = _requests.post(
                 f"{_LENDER_APP_URL}/bank-statement",
-                json={
-                    "client_id": client_id,
-                    "summary_metrics": {
-                        "nsf_count":         nsf_count,
-                        "pos_count":         pos_count,
-                        "total_deposits":    round(total_credits, 2),
-                        "total_revenue":     round(total_revenue, 2),
-                        "avg_daily_balance": round(avg_daily_balance, 2),
-                    },
-                },
+                json={"client_id": client_id, "summary_metrics": {
+                    "nsf_count":         nsf_count,
+                    "pos_count":         pos_count,
+                    "total_deposits":    round(total_credits / n, 2),
+                    "total_revenue":     round(total_revenue / n, 2),
+                    "avg_daily_balance": round(avg_daily_balance, 2),
+                }},
                 timeout=10,
             )
             if resp.ok:
-                st.toast("Bank statement data sent to lender app", icon="✅")
-                client_id = resp.json().get("client_id")
-                if client_id:
-                    job_resp = _requests.get(
-                        f"{_LENDER_APP_URL}/job/{client_id}", timeout=10
-                    )
-                    if job_resp.ok:
+                st.toast("Sent to lender app", icon="✅")
+                cid = resp.json().get("client_id")
+                if cid:
+                    jr = _requests.get(f"{_LENDER_APP_URL}/job/{cid}", timeout=10)
+                    if jr.ok:
                         st.toast("Lender suggestion received", icon="✅")
-                    else:
-                        st.toast(f"Job poll returned {job_resp.status_code}", icon="⚠️")
-            else:
-                st.toast(f"Lender app {resp.status_code}: {resp.text[:200]}", icon="⚠️")
-        except Exception as e:
-            st.toast(f"Could not reach lender app: {e}", icon="❌")
+        except Exception:
+            pass
 
-        # ── Tabs ─────────────────────────────────────────────────────────
+        # ── Info bar (hero already rendered above) ──────────────────────────
+        render_info_bar(client_id, n, results_df)
+
+        # ── Tabs ────────────────────────────────────────────────────────────
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            "📊 Dashboard", "📑 Statements",
-            "🏢 Lenders",   "📈 Analysis", "⬇️ Export",
+            "Dashboard", "Statements", "Lenders", "Analysis", "Export",
         ])
 
-        # ── TAB 1: Dashboard ──────────────────────────────────────────────
+        # ═══ TAB 1 — Dashboard ══════════════════════════════════════════════
         with tab1:
-            st.markdown("### 📊 Overall Totals")
+            # ── Overall KPIs ─────────────────────────────────────────────
+            st.markdown('<div class="sect-lbl">OVERALL TOTALS</div>', unsafe_allow_html=True)
             render_kpis(
                 total_revenue, total_credits, total_debits,
-                total_lender_debits, total_lender_credits,
-                total_cash_flow, withholding_rate,
-                nsf_count, avg_daily_balance, pos_count,
-            )
-            st.divider()
+                total_lender_debits, total_lender_credits, total_cash_flow,
+                withholding_rate, nsf_count, avg_daily_balance, pos_count, n=n)
 
-            st.markdown("### 📅 Average Monthly")
-            n = len(results_df)
+            st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+            st.markdown('<div class="sect-lbl">AVERAGE MONTHLY</div>', unsafe_allow_html=True)
             render_kpis(
                 total_revenue / n,        total_credits / n,
                 total_debits / n,         total_lender_debits / n,
@@ -645,233 +823,298 @@ def main():
                 withholding_rate,
                 int(results_df["NSF Count"].mean()),
                 float(results_df["Avg Daily Balance"].mean()),
-                int(results_df["POS Count"].mean()),
-            )
+                int(results_df["POS Count"].mean()), n=1)
+
             st.divider()
 
-            st.markdown("### 🔄 Latest Statement")
-            lr = results_df.iloc[-1]
-            render_kpis(
-                lr["Total Monthly Revenue"],
-                lr["Total Credits"],
-                lr["Total Debits"],
-                lr["Total Lender Debits"],
-                lr.get("Total Lender Credits", 0.0),
-                lr["Total Credits"] - lr["Total Debits"],
-                lr["Withholding Rate"],
-                int(lr.get("NSF Count", 0)),
-                float(lr.get("Avg Daily Balance", 0.0)),
-                int(lr.get("POS Count", 0)),
-            )
+            # ── Debt & Risk Profile ──────────────────────────────────────
+            st.markdown('<div class="sect-lbl">DEBT &amp; RISK PROFILE</div>',
+                        unsafe_allow_html=True)
+            # Rebuild lender rows for the dashboard tab
+            _all_ldr = pd.concat(
+                [df for df in all_lender_data.values() if not df.empty], ignore_index=True,
+            ) if any(not df.empty for df in all_lender_data.values()) else pd.DataFrame()
+
+            col_tbl, col_chart, col_nsf = st.columns([4, 3, 3], gap="medium")
+
+            # Lender table
+            with col_tbl:
+                if not _all_ldr.empty and "Detected Lender" in _all_ldr.columns:
+                    ldr_tbl = (_all_ldr
+                               .groupby("Detected Lender").agg(
+                                   Last_Date=("Date", "last"),
+                                   Total=("Lender Debit Amount", "sum"))
+                               .reset_index()
+                               .sort_values("Total", ascending=False)
+                               .head(8))
+                    rows_html = "".join(
+                        f'<div class="tbl-row" style="grid-template-columns:2fr 1.5fr 1.5fr">'
+                        f'<span>{r["Detected Lender"]}</span>'
+                        f'<span>{r["Last_Date"] if pd.notna(r["Last_Date"]) else "—"}</span>'
+                        f'<span style="font-weight:700">${r["Total"]:,.2f}</span></div>'
+                        for _, r in ldr_tbl.iterrows()
+                    )
+                    total_exp = _all_ldr["Lender Debit Amount"].sum()
+                    st.markdown(f"""
+                    <div class="tbl-card">
+                      <div class="tbl-head" style="grid-template-columns:2fr 1.5fr 1.5fr">
+                        <span class="tbl-hcell">Lender</span>
+                        <span class="tbl-hcell">Last Date</span>
+                        <span class="tbl-hcell">Total Debited</span>
+                      </div>
+                      {rows_html}
+                      <div class="tbl-total" style="grid-template-columns:2fr 1.5fr 1.5fr">
+                        <span>Total</span><span></span>
+                        <span>${total_exp:,.2f}</span>
+                      </div>
+                    </div>""", unsafe_allow_html=True)
+                else:
+                    st.info("No lender activity detected")
+
+            # Exposure donut chart
+            with col_chart:
+                # Withholding rate gauge: lender debits as % of total revenue
+                wr = min(withholding_rate, 100.0)
+                remaining = max(100.0 - wr, 0)
+                wr_color = ("#E53E3E" if wr > 30 else
+                            "#D97706" if wr > 15 else "#4F6EF7")
+                fig_donut = go.Figure(go.Pie(
+                    values=[wr, remaining],
+                    labels=["Lender Exposure", "Free Revenue"],
+                    hole=0.68,
+                    marker_colors=[wr_color, "#EDF0F5"],
+                    textinfo="none",
+                    hoverinfo="none",
+                    sort=False,
+                ))
+                fig_donut.update_layout(
+                    height=210, margin=dict(t=0, b=0, l=0, r=0),
+                    showlegend=False,
+                    paper_bgcolor="white", plot_bgcolor="white",
+                    annotations=[
+                        dict(text=f"{wr:.1f}%", x=0.5, y=0.58,
+                             font=dict(size=18, color="#0D1526", family="Inter"),
+                             showarrow=False),
+                        dict(text="of revenue", x=0.5, y=0.38,
+                             font=dict(size=10, color="#9AA5B4", family="Inter"),
+                             showarrow=False),
+                    ],
+                )
+                st.markdown('<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9AA5B4;margin-bottom:4px">Withholding Rate</div>',
+                            unsafe_allow_html=True)
+                st.plotly_chart(fig_donut, use_container_width=True,
+                               config={"displayModeBar": False})
+                st.markdown(f'<div style="font-size:12px;color:#9AA5B4;text-align:center;margin-top:-12px">${total_lender_debits:,.2f} paid to lenders</div>',
+                            unsafe_allow_html=True)
+
+            # NSF alerts panel
+            with col_nsf:
+                nsf_cls_big = "red" if nsf_count > 0 else ""
+                st.markdown(f"""
+                <div class="nsf-card">
+                  <div class="nsf-header">
+                    <span class="nsf-title">NSF Alerts</span>
+                    <span class="nsf-warn">{"⚠️" if nsf_count > 0 else "✅"}</span>
+                  </div>
+                  <div class="nsf-row">
+                    <span class="nsf-name">Total NSFs</span>
+                    <span class="nsf-count {nsf_cls_big}">{nsf_count}</span>
+                  </div>
+                  <div class="nsf-row">
+                    <span class="nsf-name">Withholding Rate</span>
+                    <span class="nsf-count">{withholding_rate:.1f}%</span>
+                  </div>
+                  <div class="nsf-row">
+                    <span class="nsf-name">Avg Daily Balance</span>
+                    <span class="nsf-count">${avg_daily_balance:,.0f}</span>
+                  </div>
+                  <div class="nsf-row">
+                    <span class="nsf-name">POS Transactions</span>
+                    <span class="nsf-count">{pos_count}</span>
+                  </div>
+                </div>""", unsafe_allow_html=True)
+
             st.divider()
             render_chart(results_df)
 
-        # ── TAB 2: Statements ─────────────────────────────────────────────
+        # ═══ TAB 2 — Statements ═════════════════════════════════════════════
         with tab2:
-            st.markdown("### 📋 Statement Summary")
+            _sh("📋", "Statement Summary", f"{n} statements analysed", "indigo")
             display = results_df.copy()
-            for col in ["Total Monthly Revenue", "Total Credits", "Total Debits",
-                        "Total Lender Debits", "Total Lender Credits"]:
+            for col in ["Total Monthly Revenue","Total Credits","Total Debits",
+                        "Total Lender Debits","Total Lender Credits"]:
                 if col in display.columns:
                     display[col] = display[col].apply(lambda x: f"${x:,.2f}")
             if "Withholding Rate" in display.columns:
-                display["Withholding Rate"] = display["Withholding Rate"].apply(
-                    lambda x: f"{x:.2f}%"
-                )
+                display["Withholding Rate"] = display["Withholding Rate"].apply(lambda x: f"{x:.2f}%")
             st.dataframe(display, use_container_width=True, hide_index=True)
 
-        # ── TAB 3: Lenders ────────────────────────────────────────────────
+        # ═══ TAB 3 — Lenders ════════════════════════════════════════════════
         with tab3:
-            # Combine all lender rows across statements
             all_lender_rows = pd.concat(
-                [df for df in all_lender_data.values() if not df.empty],
-                ignore_index=True,
+                [df for df in all_lender_data.values() if not df.empty], ignore_index=True,
             ) if any(not df.empty for df in all_lender_data.values()) else pd.DataFrame()
 
             all_credit_rows = pd.concat(
-                [df for df in all_lender_credit_data.values() if not df.empty],
-                ignore_index=True,
+                [df for df in all_lender_credit_data.values() if not df.empty], ignore_index=True,
             ) if any(not df.empty for df in all_lender_credit_data.values()) else pd.DataFrame()
 
-            # Summary metrics
-            st.markdown("### 💰 Lender Summary")
-            c1, c2 = st.columns(2)
-            c1.metric(
-                "Total Lender Debits",
-                f"${all_lender_rows['Lender Debit Amount'].sum():,.2f}"
-                if not all_lender_rows.empty else "$0.00",
-            )
-            c2.metric(
-                "Total Lender Credits",
-                f"${all_credit_rows['Lender Credit Amount'].sum():,.2f}"
-                if not all_credit_rows.empty else "$0.00",
-            )
-            st.divider()
+            _sh("💰", "Lender Overview", "Detected financing relationships", "purple")
+            total_ld = all_lender_rows["Lender Debit Amount"].sum() if not all_lender_rows.empty else 0
+            total_lc = all_credit_rows["Lender Credit Amount"].sum() if not all_credit_rows.empty else 0
+            c1, c2 = st.columns(2, gap="small")
+            with c1:
+                st.markdown(f"""
+                <div class="kpi-card kpi-card-red">
+                  <div class="kpi-top"><span class="kpi-label">Total Lender Debits</span></div>
+                  <div class="kpi-value kpi-red">${total_ld:,.2f}</div>
+                </div>""", unsafe_allow_html=True)
+            with c2:
+                st.markdown(f"""
+                <div class="kpi-card kpi-card-green">
+                  <div class="kpi-top"><span class="kpi-label">Total Lender Credits</span></div>
+                  <div class="kpi-value kpi-green">${total_lc:,.2f}</div>
+                </div>""", unsafe_allow_html=True)
 
-            # Debit totals table
             if not all_lender_rows.empty:
-                st.markdown("### 📋 Lender Debit Totals")
-                tbl = (
-                    all_lender_rows
-                    .groupby("Detected Lender")["Lender Debit Amount"]
-                    .sum().reset_index()
-                    .rename(columns={
-                        "Detected Lender":    "Lender",
-                        "Lender Debit Amount":"Total Debited",
-                    })
-                    .sort_values("Total Debited", ascending=False)
-                    .reset_index(drop=True)
-                )
-                tbl["Total Debited"] = tbl["Total Debited"].apply(lambda x: f"${x:,.2f}")
-                st.dataframe(tbl, use_container_width=True, hide_index=True)
                 st.divider()
+                _sh("📊", "Lender Exposure", "Debits ranked by total amount", "purple")
+                tbl = (all_lender_rows
+                       .groupby("Detected Lender")["Lender Debit Amount"].sum()
+                       .reset_index()
+                       .sort_values("Lender Debit Amount", ascending=False)
+                       .reset_index(drop=True))
+                max_amt = tbl["Lender Debit Amount"].max()
+                bars_html = ""
+                for _, row in tbl.iterrows():
+                    pct = (row["Lender Debit Amount"] / max_amt * 100) if max_amt else 0
+                    bars_html += f"""
+                    <div class="lb-row">
+                      <div class="lb-name">{row['Detected Lender']}</div>
+                      <div class="lb-bar-wrap"><div class="lb-bar" style="width:{pct:.1f}%"></div></div>
+                      <div class="lb-amt">${row['Lender Debit Amount']:,.2f}</div>
+                    </div>"""
+                st.markdown(f'<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;box-shadow:var(--sh)">{bars_html}</div>',
+                            unsafe_allow_html=True)
 
-            # Credit totals table
-            if not all_credit_rows.empty:
-                st.markdown("### 📋 Lender Credit Totals")
-                tbl = (
-                    all_credit_rows
-                    .groupby("Detected Lender")["Lender Credit Amount"]
-                    .sum().reset_index()
-                    .rename(columns={
-                        "Detected Lender":      "Lender",
-                        "Lender Credit Amount": "Total Credited",
-                    })
-                    .sort_values("Total Credited", ascending=False)
-                    .reset_index(drop=True)
-                )
-                tbl["Total Credited"] = tbl["Total Credited"].apply(lambda x: f"${x:,.2f}")
-                st.dataframe(tbl, use_container_width=True, hide_index=True)
-                st.divider()
-
-            # Per-statement expanders
+            st.divider()
+            _sh("📁", "Per-Statement Detail", "", "indigo")
             for fname, lender_data in all_lender_data.items():
-                with st.expander(f"📊 {fname}", expanded=True):
-                    lc_data     = all_lender_credit_data.get(fname, pd.DataFrame())
-                    flagged_data= all_flagged_data.get(fname, pd.DataFrame())
-
+                with st.expander(f"📄 {fname}"):
+                    lc_data      = all_lender_credit_data.get(fname, pd.DataFrame())
+                    flagged_data = all_flagged_data.get(fname, pd.DataFrame())
                     c1, c2 = st.columns(2)
-
                     with c1:
-                        st.markdown("#### 🔻 Lender Debits")
+                        st.markdown("**🔻 Lender Debits**")
                         if not lender_data.empty:
-                            _safe_show(lender_data, [
-                                "Date", "Description",
-                                "Detected Lender", "Matched Keyword",
-                                "Lender Debit Amount",
-                            ])
-                            st.metric(
-                                "Total",
-                                f"${lender_data['Lender Debit Amount'].sum():,.2f}"
-                                if "Lender Debit Amount" in lender_data.columns else "$0.00",
-                            )
+                            _safe_show(lender_data, ["Date","Description","Detected Lender","Lender Debit Amount"])
                         else:
                             st.info("No lender debits detected")
-
                     with c2:
-                        st.markdown("#### 🟢 Lender Credits")
+                        st.markdown("**🟢 Lender Credits**")
                         if not lc_data.empty:
-                            _safe_show(lc_data, [
-                                "Date", "Description",
-                                "Detected Lender", "Matched Keyword",
-                                "Lender Credit Amount",
-                            ])
-                            st.metric(
-                                "Total",
-                                f"${lc_data['Lender Credit Amount'].sum():,.2f}"
-                                if "Lender Credit Amount" in lc_data.columns else "$0.00",
-                            )
+                            _safe_show(lc_data, ["Date","Description","Detected Lender","Lender Credit Amount"])
                         else:
                             st.info("No lender credits detected")
+                    if not flagged_data.empty:
+                        st.markdown("**⚠️ Flagged Transactions**")
+                        _safe_show(flagged_data, ["Matched Keyword","Flagged Line","Detected Amount"])
 
-                    st.markdown("#### ⚠️ Flagged Transactions")
-                    if flagged_data.empty:
-                        st.success("No suspicious transactions detected")
-                    else:
-                        _safe_show(flagged_data, [
-                            "Matched Keyword", "Flagged Line", "Detected Amount"
-                        ])
-
-        # ── TAB 4: Analysis ───────────────────────────────────────────────
+        # ═══ TAB 4 — Analysis ═══════════════════════════════════════════════
         with tab4:
             if not combined_df.empty:
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Total Rows",   len(combined_df))
-                c2.metric("Credit Rows",
-                          len(combined_df[combined_df["Credit"] > 0])
-                          if "Credit" in combined_df.columns else 0)
-                c3.metric("Debit Rows",
-                          len(combined_df[combined_df["Debit"] > 0])
-                          if "Debit"  in combined_df.columns else 0)
+                funding_detected = (bool(combined_df["Funding Detected"].any())
+                                    if "Funding Detected" in combined_df.columns else False)
+                funders = (sorted(set(combined_df.loc[combined_df["Funded By"] != "","Funded By"].tolist()))
+                           if "Funded By" in combined_df.columns else [])
+                risk_score, risk_level = calculate_risk_level(total_revenue, total_debits, nsf_count, funding_detected)
+
+                # Risk assessment card
+                _sh("🎯", "Risk Assessment", "Automated underwriting indicators", "red")
+                risk_cls = "risk-low" if "low" in risk_level.lower() else ("risk-high" if "high" in risk_level.lower() else "risk-med")
+                notes = generate_notes(total_revenue, total_debits, total_cash_flow,
+                                       nsf_count, funding_detected, funders, withholding_rate)
+                st.markdown(f"""
+                <div class="risk-wrap">
+                  <span class="risk-badge {risk_cls}">{risk_level}</span>
+                  <div style="margin-left:12px;font-size:13px;color:var(--t2)">
+                    {"Funding activity detected — " + ", ".join(funders) if funding_detected else "No funding stack detected"}
+                  </div>
+                  <div style="margin-left:auto;text-align:right">
+                    <div class="risk-score">{risk_score:.0f}</div>
+                    <div class="risk-label">Risk Score</div>
+                  </div>
+                </div>""", unsafe_allow_html=True)
+
+                # Insight notes
+                if notes:
+                    _sh("📝", "Underwriting Notes", f"{len(notes)} observations", "amber")
+                    for note in notes:
+                        st.markdown(f"""
+                        <div class="ins-card">
+                          <div class="ins-head"><span class="ins-icon">•</span><span class="ins-title">{note[:60]}{'…' if len(note)>60 else ''}</span></div>
+                          <div class="ins-body">{note}</div>
+                        </div>""", unsafe_allow_html=True)
+
                 st.divider()
-                st.markdown("### 💳 Transaction Details")
+                # Transaction stats
+                _sh("💳", "Transaction Details", f"{len(combined_df):,} total rows", "indigo")
+                credit_rows = len(combined_df[combined_df["Credit"] > 0]) if "Credit" in combined_df.columns else 0
+                debit_rows  = len(combined_df[combined_df["Debit"]  > 0]) if "Debit"  in combined_df.columns else 0
+                ca, cb, cc, cd = st.columns(4, gap="small")
+                for col, lbl, val, cls in [
+                    (ca, "Total Rows",  f"{len(combined_df):,}", ""),
+                    (cb, "Credit Rows", f"{credit_rows:,}",       "kpi-green"),
+                    (cc, "Debit Rows",  f"{debit_rows:,}",        "kpi-red"),
+                    (cd, "NSF Events",  str(nsf_count),           "kpi-red" if nsf_count > 0 else "kpi-green"),
+                ]:
+                    with col:
+                        st.markdown(f"""
+                        <div class="kpi-card">
+                          <div class="kpi-top"><span class="kpi-label">{lbl}</span></div>
+                          <div class="kpi-value {cls}">{val}</div>
+                        </div>""", unsafe_allow_html=True)
+                st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
                 _safe_show(combined_df)
+            else:
+                st.info("No transaction data available for analysis.")
 
-                funding_detected = (
-                    bool(combined_df["Funding Detected"].any())
-                    if "Funding Detected" in combined_df.columns else False
-                )
-                funders = (
-                    sorted(set(
-                        combined_df.loc[
-                            combined_df["Funded By"] != "", "Funded By"
-                        ].tolist()
-                    ))
-                    if "Funded By" in combined_df.columns else []
-                )
-                risk_score, risk_level = calculate_risk_level(
-                    total_revenue, total_debits, nsf_count, funding_detected
-                )
-                st.divider()
-                st.markdown("### 🎯 Risk Assessment")
-                rc1, rc2 = st.columns(2)
-                rc1.metric("Risk Level", risk_level)
-                rc2.metric("Risk Score", f"{risk_score:.1f}")
-                notes = generate_notes(
-                    total_revenue, total_debits, total_cash_flow,
-                    nsf_count, funding_detected, funders, withholding_rate,
-                )
-                st.markdown("**📝 Underwriting Notes**")
-                for note in notes:
-                    st.markdown(f"• {note}")
-
-        # ── TAB 5: Export ─────────────────────────────────────────────────
+        # ═══ TAB 5 — Export ═════════════════════════════════════════════════
         with tab5:
-            st.markdown("### 📥 Download Results")
+            _sh("⬇️", "Export Reports", "Download your analysis results", "green")
+
+            st.markdown("""
+            <div class="exp-grid">
+              <div class="exp-card"><div class="exp-icon">📄</div><div class="exp-title">Statement Results</div><div class="exp-sub">Per-statement breakdown as CSV</div></div>
+              <div class="exp-card"><div class="exp-icon">📊</div><div class="exp-title">Summary Report</div><div class="exp-sub">Aggregated metrics as CSV</div></div>
+            </div>""", unsafe_allow_html=True)
+
+            st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
                 st.download_button(
-                    "⬇️ Download Statement Results",
+                    "⬇️  Download Statement Results (CSV)",
                     results_df.to_csv(index=False).encode("utf-8"),
-                    "orbit_optix_statements.csv",
-                    "text/csv",
+                    "orbit_optix_statements.csv", "text/csv",
+                    use_container_width=True,
                 )
             with c2:
                 summary_df = pd.DataFrame({
-                    "Metric": [
-                        "Total Revenue", "Total Credits", "Total Debits",
-                        "Total Lender Debits", "Total Lender Credits",
-                        "Withholding Rate", "Cash Flow",
-                        "NSF Count", "Avg Daily Balance", "POS Count",
-                    ],
-                    "Value": [
-                        f"${total_revenue:,.2f}",
-                        f"${total_credits:,.2f}",
-                        f"${total_debits:,.2f}",
-                        f"${total_lender_debits:,.2f}",
-                        f"${total_lender_credits:,.2f}",
-                        f"{withholding_rate:.2f}%",
-                        f"${total_cash_flow:,.2f}",
-                        str(nsf_count),
-                        f"${avg_daily_balance:,.2f}",
-                        str(pos_count),
-                    ],
+                    "Metric": ["Total Revenue","Total Credits","Total Debits",
+                               "Total Lender Debits","Total Lender Credits",
+                               "Withholding Rate","Cash Flow",
+                               "NSF Count","Avg Daily Balance","POS Count"],
+                    "Value": [f"${total_revenue:,.2f}", f"${total_credits:,.2f}",
+                              f"${total_debits:,.2f}",  f"${total_lender_debits:,.2f}",
+                              f"${total_lender_credits:,.2f}", f"{withholding_rate:.2f}%",
+                              f"${total_cash_flow:,.2f}", str(nsf_count),
+                              f"${avg_daily_balance:,.2f}", str(pos_count)],
                 })
                 st.download_button(
-                    "⬇️ Download Summary Report",
+                    "⬇️  Download Summary Report (CSV)",
                     summary_df.to_csv(index=False).encode("utf-8"),
-                    "orbit_optix_summary.csv",
-                    "text/csv",
+                    "orbit_optix_summary.csv", "text/csv",
+                    use_container_width=True,
                 )
 
     except Exception as exc:
