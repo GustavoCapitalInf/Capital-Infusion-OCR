@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Font loading — font-display:swap prevents FOIT (ux-guidelines: font-loading) ── */
+@layer base {
+  @font-face { font-display: swap; }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Tabular numbers everywhere — prevents layout shift in data tables */
+    font-variant-numeric: tabular-nums;
+  }
+
+  body {
+    @apply bg-surface text-text-primary font-sans;
+    line-height: 1.6;
+  }
+
+  /* Heading scale: Calistoga display font (fintech SaaS design system) */
+  h1, h2 { @apply font-display; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar            { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track      { background: transparent; }
+  ::-webkit-scrollbar-thumb      { @apply bg-slate-300 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover{ @apply bg-slate-400; }
+
+  /* Reduced-motion: honour system preference (ux-guidelines: reduced-motion) */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Focus rings — visible keyboard navigation (ux-guidelines: focus-states) */
+  :focus-visible {
+    outline: 2px solid #2563EB;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  /* ── Card system ── */
+  .card          { @apply bg-card border border-border rounded-2xl shadow-xs; }
+  .card-hover    { @apply card transition-all duration-base hover:shadow-md hover:-translate-y-0.5; }
+  .card-dark     { @apply bg-[#0E1223] border border-[#1E293B] rounded-2xl; }
+
+  /* ── Page header ── */
+  .page-header   { @apply mb-8; }
+  .page-header h1{ @apply text-2xl font-bold text-text-primary tracking-tight; }
+  .page-header p { @apply text-sm text-text-muted mt-1; }
+
+  /* ── Badge system (color alone is never the only indicator — ux-guidelines: color-not-only) ── */
+  .badge         { @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border font-sans; }
+  .badge-green   { @apply bg-green-light  text-green-600   border-green-border; }
+  .badge-red     { @apply bg-red-light    text-red-600     border-red-border; }
+  .badge-amber   { @apply bg-amber-light  text-amber-600   border-amber-border; }
+  .badge-blue    { @apply bg-blue-50      text-blue-700    border-blue-200; }
+  .badge-purple  { @apply bg-purple-light text-purple      border-purple-border; }
+  .badge-gray    { @apply bg-gray-100     text-gray-600    border-gray-200; }
+
+  /* ── Primary button — 44px min touch target (ux-guidelines: touch-target-size) ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 min-h-[44px]
+           bg-primary text-white rounded-xl px-5 py-2.5 text-sm font-semibold
+           cursor-pointer select-none
+           transition-all duration-fast
+           hover:bg-primary-dark hover:shadow-glow
+           active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  /* ── Number display — always JetBrains Mono (tabular) ── */
+  .num           { @apply font-mono tabular-nums; }
+
+  /* ── Skeleton shimmer ── */
+  .skeleton {
+    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+    background-size: 200% 100%;
+    @apply animate-shimmer rounded-xl;
+  }
+
+  /* ── Section divider with centred label ── */
+  .section-divider {
+    @apply flex items-center gap-4 my-8;
+  }
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    @apply flex-1 h-px bg-border;
+  }
+}
+
+@layer utilities {
+  /* Display heading style */
+  .text-display  { @apply font-display font-normal tracking-tight; }
+
+  /* Gradient text */
+  .text-gradient {
+    background: linear-gradient(135deg, #2563EB 0%, #7C3AED 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Dot-grid background texture */
+  .bg-dot-grid {
+    background-image: radial-gradient(circle, #CBD5E1 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}

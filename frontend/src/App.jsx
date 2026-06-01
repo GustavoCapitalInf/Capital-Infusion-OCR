@@ -1,0 +1,74 @@
+import React from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import Sidebar from './components/Sidebar'
+import Dashboard   from './pages/Dashboard'
+import Statements  from './pages/Statements'
+import Lenders     from './pages/Lenders'
+import Analysis    from './pages/Analysis'
+import Export      from './pages/Export'
+import useStore    from './store/useStore'
+
+const PAGE_META = {
+  '/dashboard':  { label: 'Dashboard',  sub: 'Upload and analyse bank statements' },
+  '/statements': { label: 'Statements', sub: 'Per-statement metrics overview' },
+  '/lenders':    { label: 'Lenders',    sub: 'MCA and lender detection' },
+  '/analysis':   { label: 'Analysis',   sub: 'Risk scoring and transactions' },
+  '/export':     { label: 'Export',     sub: 'Download your results' },
+}
+
+function TopBar() {
+  const { pathname } = useLocation()
+  const { clientId, setClientId } = useStore()
+  const meta = PAGE_META[pathname] ?? {}
+
+  return (
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-border flex items-center justify-between px-8 py-3">
+      <div>
+        <p className="font-sans text-[13px] font-bold text-text-primary leading-none">{meta.label}</p>
+        <p className="font-sans text-[11px] text-text-muted mt-0.5">{meta.sub}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <input
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          placeholder="Client ID (optional)"
+          className="text-xs px-3 py-1.5 bg-gray-50 border border-border rounded-lg outline-none
+                     text-text-primary placeholder-text-muted focus:bg-white focus:border-blue-300
+                     focus:ring-1 focus:ring-blue-200 transition-all w-44"
+        />
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <span className="text-[10px] font-bold text-white">CI</span>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+function Layout() {
+  return (
+    <div className="flex h-screen overflow-hidden bg-surface">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto">
+          <Routes>
+            <Route path="/"            element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard"   element={<Dashboard />} />
+            <Route path="/statements"  element={<Statements />} />
+            <Route path="/lenders"     element={<Lenders />} />
+            <Route path="/analysis"    element={<Analysis />} />
+            <Route path="/export"      element={<Export />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
+    </BrowserRouter>
+  )
+}

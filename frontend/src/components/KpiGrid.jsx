@@ -1,0 +1,69 @@
+import React from 'react'
+import {
+  DollarSign, TrendingUp, TrendingDown, Percent, Building2,
+  Banknote, CreditCard, Landmark, AlertTriangle, ShoppingCart,
+  ChevronDown, ChevronUp,
+} from 'lucide-react'
+import MetricCard from './MetricCard'
+import useStore from '../store/useStore'
+
+const $ = (n) => `$${Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const pct = (n) => `${Number(n ?? 0).toFixed(1)}%`
+
+export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
+  const { kpiExpanded, toggleKpi } = useStore()
+  const expanded = kpiExpanded[sectionKey] ?? false
+  if (!data) return null
+
+  const cfPos   = (data.cash_flow ?? 0) >= 0
+  const nsf     = data.nsf_count ?? 0
+  const wh      = data.withholding_rate ?? 0
+  const whClr   = wh > 15 ? 'red' : wh > 8 ? 'amber' : 'none'
+  const nsfClr  = nsf > 2 ? 'red' : nsf > 0 ? 'amber' : 'green'
+  const avg     = n > 1 ? `Avg ${$(data.credits / n)} / mo` : undefined
+
+  return (
+    <div className="space-y-3 animate-fade-in">
+      {/* Primary 5 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        <MetricCard label="Total Revenue"     value={$(data.credits)}       sub={avg ?? 'Inbound deposits'}   icon={DollarSign}  accent="blue" />
+        <MetricCard label="Total Credits"     value={$(data.credits)}       sub="Inbound deposits"            icon={TrendingUp}  accent="green" />
+        <MetricCard label="Total Debits"      value={$(data.debits)}        sub="Outbound payments"           icon={TrendingDown} accent="red" />
+        <MetricCard label="Withholding Rate"  value={pct(wh)}               sub="Lender debits / revenue"     icon={Percent}     accent={whClr === 'none' ? 'blue' : whClr} />
+        <MetricCard label="Lender Debits"     value={$(data.lender_debits)} sub="MCA repayments"              icon={Building2}   accent="amber" />
+      </div>
+
+      {/* Toggle */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => toggleKpi(sectionKey)}
+          className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted hover:text-blue-600
+                     bg-white border border-border rounded-full px-4 py-1.5 shadow-xs
+                     transition-all hover:border-blue-300 hover:shadow-blue"
+        >
+          {expanded
+            ? <><ChevronUp size={11} /> Show less</>
+            : <><ChevronDown size={11} /> {5} more metrics</>}
+        </button>
+      </div>
+
+      {/* Secondary 5 */}
+      {expanded && (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 animate-slide-down">
+          <MetricCard
+            label="Net Cash Flow"
+            value={(cfPos ? '+' : '') + $(data.cash_flow)}
+            sub="Credits minus debits"
+            icon={cfPos ? TrendingUp : TrendingDown}
+            accent={cfPos ? 'green' : 'red'}
+            badge={cfPos ? 'Positive' : 'Negative'}
+          />
+          <MetricCard label="Lender Credits"    value={$(data.lender_credits)}    sub="Inbound advances"         icon={Banknote}      accent="purple" />
+          <MetricCard label="Avg Daily Balance" value={$(data.avg_daily_balance)} sub="Across statement period"  icon={Landmark}      accent="blue" />
+          <MetricCard label="NSF Count"         value={String(nsf)}               sub="Returned / bounced items" icon={AlertTriangle}  accent={nsfClr} />
+          <MetricCard label="POS Transactions"  value={String(data.pos_count ?? 0)} sub="Point-of-sale activity" icon={ShoppingCart}  accent="none" />
+        </div>
+      )}
+    </div>
+  )
+}
