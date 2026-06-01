@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.upload import router as upload_router
 from backend.api.export import router as export_router
+from backend.api.keywords import router as keywords_router
 
 app = FastAPI(
     title="Orbit Optix API",
@@ -31,8 +32,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(upload_router, prefix="/api")
-app.include_router(export_router, prefix="/api")
+app.include_router(upload_router,   prefix="/api")
+app.include_router(export_router,   prefix="/api")
+app.include_router(keywords_router, prefix="/api")
 
 
 @app.get("/health")

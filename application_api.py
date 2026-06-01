@@ -23,6 +23,7 @@ GET /health
 """
 
 import io
+import json
 import os
 
 import pandas as pd
@@ -340,6 +341,51 @@ def parse_application():
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
+
+
+# ── Persistent custom lender keywords ────────────────────────────────────────
+_KEYWORDS_FILE = os.path.join(os.path.dirname(__file__), "lender_keywords.json")
+
+def _load_keywords():
+    if not os.path.exists(_KEYWORDS_FILE):
+        return []
+    try:
+        with open(_KEYWORDS_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def _save_keywords(keywords):
+    with open(_KEYWORDS_FILE, "w") as f:
+        json.dump(keywords, f, indent=2)
+
+@app.route("/lender-keywords", methods=["GET"])
+def get_lender_keywords():
+    return jsonify(_load_keywords()), 200
+
+@app.route("/lender-keywords", methods=["POST"])
+def add_lender_keyword():
+    body  = request.get_json(silent=True) or {}
+    name  = (body.get("name") or "").strip()
+    type_ = body.get("type", "debit")
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    keywords = _load_keywords()
+    if not any(k["name"].lower() == name.lower() and k["type"] == type_ for k in keywords):
+        keywords.append({"name": name, "type": type_})
+        _save_keywords(keywords)
+    return jsonify(keywords), 200
+
+@app.route("/lender-keywords", methods=["DELETE"])
+def remove_lender_keyword():
+    body  = request.get_json(silent=True) or {}
+    name  = (body.get("name") or "").strip()
+    type_ = body.get("type", "debit")
+    keywords = _load_keywords()
+    keywords = [k for k in keywords
+                if not (k["name"].lower() == name.lower() and k["type"] == type_)]
+    _save_keywords(keywords)
+    return jsonify(keywords), 200
 
 
 if __name__ == "__main__":

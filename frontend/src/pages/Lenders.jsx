@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import useStore from '../store/useStore'
 import DataTable from '../components/DataTable'
-import { Building2, AlertTriangle } from 'lucide-react'
+import { Building2, AlertTriangle, Trash2, BookMarked, X } from 'lucide-react'
 
 const $ = (n) => `$${Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
@@ -15,28 +15,6 @@ function StatCard({ label, value, sub, valueClass = 'text-text-primary' }) {
   )
 }
 
-const lenderCols = [
-  {
-    key: 'lender', label: 'Lender',
-    render: (v, row) => (
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-text-primary">{v || 'Unknown'}</span>
-        {row.manual && <span className="badge badge-blue">Manual</span>}
-      </div>
-    ),
-  },
-  {
-    key: 'keyword', label: 'Type',
-    render: (v, row) => (
-      <span className={`badge ${row.type === 'credit' ? 'badge-green' : 'badge-amber'}`}>
-        {row.type === 'credit' ? 'Credit' : 'Debit'}
-      </span>
-    ),
-  },
-  { key: 'amount',    label: 'Amount',   render: (v, row) => <span className={`font-bold ${row.type === 'credit' ? 'text-green' : 'text-amber'}`}>{$(v)}</span> },
-  { key: 'statement', label: 'Statement',render: (v) => <span className="text-xs text-text-muted font-mono truncate max-w-[160px] block">{v}</span> },
-]
-
 const flaggedCols = [
   { key: 'keyword',   label: 'Keyword',  render: (v) => <span className="badge badge-red">{v}</span> },
   { key: 'amount',    label: 'Amount',   render: (v) => $(v) },
@@ -45,7 +23,46 @@ const flaggedCols = [
 ]
 
 export default function Lenders() {
-  const { lenders, flagged, totals } = useStore()
+  const { lenders, flagged, totals, removeManualLender, customLenderKeywords, removeCustomKeyword } = useStore()
+
+  // Defined inside the component so it closes over removeManualLender
+  const lenderCols = [
+    {
+      key: 'lender', label: 'Lender',
+      render: (v, row) => (
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-text-primary">{v || 'Unknown'}</span>
+          {row.keyword === 'saved'  && <span className="badge badge-blue">Saved</span>}
+          {row.keyword === 'manual' && <span className="badge badge-gray">Manual</span>}
+        </div>
+      ),
+    },
+    {
+      key: 'keyword', label: 'Type',
+      render: (v, row) => (
+        <span className={`badge ${row.type === 'credit' ? 'badge-green' : 'badge-amber'}`}>
+          {row.type === 'credit' ? 'Credit' : 'Debit'}
+        </span>
+      ),
+    },
+    { key: 'amount',    label: 'Amount',   render: (v, row) => <span className={`font-bold ${row.type === 'credit' ? 'text-green' : 'text-amber'}`}>{$(v)}</span> },
+    { key: 'statement', label: 'Statement',render: (v) => <span className="text-xs text-text-muted font-mono truncate max-w-[160px] block">{v}</span> },
+    {
+      key: '_remove', label: '',
+      render: (_, row) => row.manual ? (
+        <button
+          onClick={() => removeManualLender(row.id)}
+          title="Remove lender"
+          aria-label="Remove manually added lender"
+          className="w-6 h-6 rounded-full flex items-center justify-center
+                     text-text-dim hover:bg-red-light hover:text-red border border-transparent
+                     hover:border-red-border transition-all duration-150 cursor-pointer"
+        >
+          <Trash2 size={11} strokeWidth={2} />
+        </button>
+      ) : null,
+    },
+  ]
 
   const totalsPerLender = useMemo(() => {
     const map = {}
@@ -84,6 +101,38 @@ export default function Lenders() {
           />
         </div>
       )}
+
+      {/* Saved lender keywords */}
+      <div className="bg-white border border-border rounded-2xl p-6 shadow-xs">
+        <div className="flex items-center gap-2 mb-1">
+          <BookMarked size={15} className="text-blue-600" />
+          <p className="text-sm font-bold text-text-primary">Tracked Lender Keywords</p>
+        </div>
+        <p className="text-xs text-text-muted mb-4">
+          Auto-applied to every future upload. Add new ones by clicking + on any transaction in the Statements tab.
+        </p>
+        {customLenderKeywords.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {customLenderKeywords.map((k, i) => (
+              <div key={i} className="flex items-center gap-2 bg-gray-50 border border-border rounded-xl px-3 py-2">
+                <span className={`badge ${k.type === 'credit' ? 'badge-green' : 'badge-amber'}`}>{k.type}</span>
+                <span className="text-sm font-medium text-text-primary">{k.name}</span>
+                <button
+                  onClick={() => removeCustomKeyword(k.name, k.type)}
+                  title="Remove keyword"
+                  className="w-5 h-5 rounded-full flex items-center justify-center
+                             text-text-dim hover:bg-red-light hover:text-red border border-transparent
+                             hover:border-red-border transition-all duration-150 ml-1"
+                >
+                  <X size={10} strokeWidth={2.5} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-text-muted italic">No saved keywords yet — add a lender from the Statements tab to get started.</p>
+        )}
+      </div>
 
       {/* Bar breakdown */}
       {totalsPerLender.length > 0 && (

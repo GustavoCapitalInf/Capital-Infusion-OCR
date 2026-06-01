@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { X, Building2, TrendingDown, TrendingUp, Plus } from 'lucide-react'
 import clsx from 'clsx'
 import useStore from '../store/useStore'
@@ -6,33 +6,45 @@ import useStore from '../store/useStore'
 const $ = (n) => `$${Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
 export default function AddLenderModal({ txn, onClose }) {
-  const [name, setName]   = useState('')
-  const [type, setType]   = useState('debit')  // 'debit' | 'credit'
+  const [name, setName] = useState('')
+  const [type, setType] = useState('debit')
   const inputRef = useRef(null)
-  const addManualLender = useStore((s) => s.addManualLender)
-  const totals = useStore((s) => s.totals)
 
-  // Focus input when modal opens
+  const addManualLenderBulk = useStore((s) => s.addManualLenderBulk)
+  const transactions        = useStore((s) => s.transactions)
+  const totals              = useStore((s) => s.totals)
+
   useEffect(() => { inputRef.current?.focus() }, [])
-
-  // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const amount    = type === 'debit' ? Number(txn.Debit ?? 0) : Number(txn.Credit ?? 0)
-  const totalCred = Number(totals?.credits ?? 0)
-  const prevLdrDeb= Number(totals?.lender_debits ?? 0)
-  const newLdrDeb = prevLdrDeb + (type === 'debit' ? amount : 0)
-  const newWHRate = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
-  const prevWHRate= Number(totals?.withholding_rate ?? 0)
-  const whDelta   = newWHRate - prevWHRate
+  // All transactions whose description contains the typed lender name (case-insensitive)
+  const matchingTxns = useMemo(() => {
+    const keyword = name.trim().toLowerCase()
+    if (!keyword) return []
+    return transactions.filter((t) =>
+      (t.Description ?? '').toLowerCase().includes(keyword) &&
+      (type === 'debit' ? Number(t.Debit ?? 0) > 0 : Number(t.Credit ?? 0) > 0)
+    )
+  }, [transactions, name, type])
+
+  const totalAmount = matchingTxns.reduce(
+    (sum, t) => sum + (type === 'debit' ? Number(t.Debit ?? 0) : Number(t.Credit ?? 0)), 0
+  )
+
+  const totalCred  = Number(totals?.credits ?? 0)
+  const prevLdrDeb = Number(totals?.lender_debits ?? 0)
+  const newLdrDeb  = prevLdrDeb + (type === 'debit' ? totalAmount : 0)
+  const newWHRate  = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+  const prevWHRate = Number(totals?.withholding_rate ?? 0)
+  const whDelta    = newWHRate - prevWHRate
 
   const handleAdd = () => {
-    if (!name.trim() || !amount) return
-    addManualLender(txn, name, type)
+    if (!name.trim() || !matchingTxns.length) return
+    addManualLenderBulk(matchingTxns, name, type)
     onClose()
   }
 
@@ -78,6 +90,19 @@ export default function AddLenderModal({ txn, onClose }) {
               {txn.Debit  > 0 && <span className="font-mono text-xs font-semibold text-red">-{$(txn.Debit)}</span>}
               {txn.Credit > 0 && <span className="font-mono text-xs font-semibold text-green">+{$(txn.Credit)}</span>}
             </div>
+          </div>
+
+          {/* Matching transactions count */}
+          <div className={clsx(
+            'flex items-center justify-between rounded-xl px-4 py-2.5 border text-xs font-semibold',
+            matchingTxns.length > 1
+              ? 'bg-blue-50 border-blue-100 text-blue-700'
+              : 'bg-gray-50 border-border text-text-muted'
+          )}>
+            <span>
+              {matchingTxns.length} matching transaction{matchingTxns.length !== 1 ? 's' : ''} found
+            </span>
+            <span className="font-mono">{$(totalAmount)} total</span>
           </div>
 
           {/* Debit / Credit toggle */}
@@ -138,7 +163,7 @@ export default function AddLenderModal({ txn, onClose }) {
           </div>
 
           {/* Impact preview */}
-          {name.trim() && amount > 0 && (
+          {name.trim() && totalAmount > 0 && (
             <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-1.5 animate-fade-in">
               <p className="font-sans text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-2">
                 Impact Preview
@@ -148,7 +173,7 @@ export default function AddLenderModal({ txn, onClose }) {
                   {type === 'debit' ? 'Lender Debits' : 'Lender Credits'}
                 </span>
                 <span className="font-mono text-xs font-semibold text-text-primary">
-                  + {$(amount)}
+                  + {$(totalAmount)}
                 </span>
               </div>
               {type === 'debit' && (
@@ -177,13 +202,13 @@ export default function AddLenderModal({ txn, onClose }) {
           </button>
           <button
             onClick={handleAdd}
-            disabled={!name.trim() || !amount}
+            disabled={!name.trim() || !matchingTxns.length}
             className="flex-1 flex items-center justify-center gap-2 font-sans text-sm font-semibold
                        text-white bg-blue-600 rounded-xl py-2.5 hover:bg-blue-700 transition-all
                        disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
           >
             <Plus size={14} />
-            Add Lender
+            Add {matchingTxns.length > 1 ? `${matchingTxns.length} Transactions` : 'Lender'}
           </button>
         </div>
       </div>

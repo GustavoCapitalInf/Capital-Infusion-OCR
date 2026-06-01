@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import Dashboard   from './pages/Dashboard'
@@ -44,13 +44,24 @@ function TopBar() {
   )
 }
 
+function ScrollToTop({ mainRef }) {
+  const { pathname } = useLocation()
+  useEffect(() => { mainRef.current?.scrollTo({ top: 0 }) }, [pathname])
+  return null
+}
+
 function Layout() {
+  const mainRef           = useRef(null)
+  const loadCustomKeywords = useStore((s) => s.loadCustomKeywords)
+  useEffect(() => { loadCustomKeywords() }, [])
+
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto">
+        <main ref={mainRef} className="flex-1 overflow-y-auto">
+          <ScrollToTop mainRef={mainRef} />
           <Routes>
             <Route path="/"            element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard"   element={<Dashboard />} />

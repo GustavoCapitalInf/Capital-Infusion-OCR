@@ -27,6 +27,21 @@ export async function exportJSON(payload) {
   _download(data, 'orbit_export.json', 'application/json')
 }
 
+export async function fetchLenderKeywords() {
+  const { data } = await client.get('/lender-keywords')
+  return data
+}
+
+export async function addLenderKeyword(name, type) {
+  const { data } = await client.post('/lender-keywords', { name, type })
+  return data
+}
+
+export async function removeLenderKeyword(name, type) {
+  const { data } = await client.delete('/lender-keywords', { data: { name, type } })
+  return data
+}
+
 function _download(blob, filename, type) {
   const url = URL.createObjectURL(new Blob([blob], { type }))
   const a = document.createElement('a')

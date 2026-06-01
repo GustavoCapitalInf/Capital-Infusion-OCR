@@ -61,7 +61,7 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
           <MetricCard label="Lender Credits"    value={$(data.lender_credits)}    sub="Inbound advances"         icon={Banknote}      accent="purple" />
           <MetricCard label="Avg Daily Balance" value={$(data.avg_daily_balance)} sub="Across statement period"  icon={Landmark}      accent="blue" />
           <MetricCard label="NSF Count"         value={String(nsf)}               sub="Returned / bounced items" icon={AlertTriangle}  accent={nsfClr} />
-          <MetricCard label="POS Transactions"  value={String(data.pos_count ?? 0)} sub="Point-of-sale activity" icon={ShoppingCart}  accent="none" />
+          <MetricCard label="POS Transactions"  value={String(Math.round(data.pos_count ?? 0))} sub="Point-of-sale activity" icon={ShoppingCart}  accent="none" />
         </div>
       )}
     </div>

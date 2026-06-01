@@ -3,7 +3,6 @@ import { Sparkles, ArrowRight } from 'lucide-react'
 import useStore from '../store/useStore'
 import UploadZone from '../components/UploadZone'
 import KpiGrid from '../components/KpiGrid'
-import { RevenueChart, CashFlowChart } from '../components/Charts'
 
 function SectionDivider({ label }) {
   return (
@@ -128,36 +127,6 @@ export default function Dashboard() {
             <KpiGrid data={averages} sectionKey="monthly" n={1} />
           </SectionBlock>
 
-          {/* Charts */}
-          {statements.length > 0 && (
-            <>
-              <div className="h-px bg-border my-4" />
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                <div className="lg:col-span-3 bg-white border border-border rounded-2xl p-6 shadow-xs">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-bold text-text-primary">Revenue vs Debits</p>
-                    <span className="text-[10px] text-text-muted bg-gray-100 px-2 py-1 rounded-full">Monthly</span>
-                  </div>
-                  <p className="text-xs text-text-muted mb-6">Credits, debits and lender activity per statement</p>
-                  <RevenueChart statements={statements} />
-                </div>
-                <div className="lg:col-span-2 bg-white border border-border rounded-2xl p-6 shadow-xs">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-bold text-text-primary">Cash Flow Trend</p>
-                    <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
-                      (totals.cash_flow ?? 0) >= 0
-                        ? 'bg-green-light text-green'
-                        : 'bg-red-light text-red'
-                    }`}>
-                      {(totals.cash_flow ?? 0) >= 0 ? 'Positive' : 'Negative'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mb-6">Net cash position per statement</p>
-                  <CashFlowChart statements={statements} />
-                </div>
-              </div>
-            </>
-          )}
         </div>
       )}
     </div>
