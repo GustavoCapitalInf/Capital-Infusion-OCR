@@ -1,31 +1,20 @@
-import React from 'react'
+import React, { useState } from 'react'
 import useStore from '../store/useStore'
 import DataTable from '../components/DataTable'
-import { FileText } from 'lucide-react'
+import AddLenderModal from '../components/AddLenderModal'
+import { FileText, Plus } from 'lucide-react'
 
 const $ = (n) => `$${Number(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
 
-const txnCols = [
-  { key: 'Date',        label: 'Date',        render: (v) => <span className="font-mono text-xs text-text-secondary">{v || '—'}</span> },
-  { key: 'Description', label: 'Description', render: (v) => <span className="text-text-primary font-medium text-sm truncate max-w-[260px] block">{v || '—'}</span> },
-  { key: 'Credit',      label: 'Credit',      render: (v) => Number(v) > 0 ? <span className="font-semibold text-green text-sm">{$(v)}</span> : <span className="text-text-dim text-sm">—</span> },
-  { key: 'Debit',       label: 'Debit',       render: (v) => Number(v) > 0 ? <span className="font-semibold text-red text-sm">{$(v)}</span>   : <span className="text-text-dim text-sm">—</span> },
-  { key: 'Balance',     label: 'Balance',     render: (v) => v ? <span className="text-text-secondary text-sm">{$(v)}</span> : <span className="text-text-dim text-sm">—</span> },
-  { key: 'statement',   label: 'File',        render: (v) => <span className="font-mono text-[11px] text-text-muted truncate max-w-[140px] block">{v}</span> },
-]
-
 function Badge({ text, variant = 'gray' }) {
   const cls = {
-    green:  'badge badge-green',
-    red:    'badge badge-red',
-    amber:  'badge badge-amber',
-    blue:   'badge badge-blue',
-    gray:   'badge badge-gray',
+    green: 'badge badge-green', red: 'badge badge-red',
+    amber: 'badge badge-amber', blue: 'badge badge-blue', gray: 'badge badge-gray',
   }[variant]
   return <span className={cls}>{text}</span>
 }
 
-const columns = [
+const summaryCols = [
   {
     key: 'filename', label: 'Statement',
     render: (v) => (
@@ -49,16 +38,41 @@ const columns = [
       return <Badge text={`${n.toFixed(1)}%`} variant={n > 15 ? 'red' : n > 8 ? 'amber' : 'green'} />
     },
   },
-  {
-    key: 'nsf_count', label: 'NSF',
-    render: (v) => <Badge text={String(v)} variant={v > 2 ? 'red' : v > 0 ? 'amber' : 'green'} />,
-  },
+  { key: 'nsf_count', label: 'NSF', render: (v) => <Badge text={String(v)} variant={v > 2 ? 'red' : v > 0 ? 'amber' : 'green'} /> },
   { key: 'avg_daily_balance', label: 'Avg Balance', render: (v) => <span className="text-text-secondary">{$(v)}</span> },
   { key: 'pos_count', label: 'POS', render: (v) => <span className="badge badge-gray">{v}</span> },
 ]
 
 export default function Statements() {
   const { statements, transactions } = useStore()
+  const [modalTxn, setModalTxn] = useState(null)
+
+  // Build transaction columns — inject the + action column
+  const txnCols = [
+    { key: 'Date',        label: 'Date',        render: (v) => <span className="font-mono text-xs text-text-secondary">{v || '—'}</span> },
+    { key: 'Description', label: 'Description', render: (v) => <span className="text-text-primary font-medium text-sm truncate max-w-[240px] block">{v || '—'}</span> },
+    { key: 'Credit',      label: 'Credit',      render: (v) => Number(v) > 0 ? <span className="font-semibold text-green text-sm">{$(v)}</span> : <span className="text-text-dim text-sm">—</span> },
+    { key: 'Debit',       label: 'Debit',       render: (v) => Number(v) > 0 ? <span className="font-semibold text-red text-sm">{$(v)}</span>   : <span className="text-text-dim text-sm">—</span> },
+    { key: 'Balance',     label: 'Balance',     render: (v) => v ? <span className="text-text-secondary text-sm">{$(v)}</span> : <span className="text-text-dim text-sm">—</span> },
+    { key: 'statement',   label: 'File',        render: (v) => <span className="font-mono text-[11px] text-text-muted truncate max-w-[130px] block">{v}</span> },
+    {
+      // Action column — "+" button to add as lender
+      key: '_add', label: '',
+      render: (_, row) => (
+        <button
+          onClick={() => setModalTxn(row)}
+          title="Add as lender"
+          aria-label="Add transaction as lender"
+          className="w-6 h-6 rounded-full flex items-center justify-center
+                     bg-gray-100 text-text-muted border border-border
+                     hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200
+                     transition-all duration-150 cursor-pointer"
+        >
+          <Plus size={11} strokeWidth={2.5} />
+        </button>
+      ),
+    },
+  ]
 
   if (statements.length === 0) return (
     <div className="p-8 max-w-[1440px] mx-auto animate-fade-in">
@@ -81,7 +95,7 @@ export default function Statements() {
       </div>
 
       <DataTable
-        columns={columns}
+        columns={summaryCols}
         data={statements}
         pageSize={25}
         title="Statement Summary"
@@ -94,7 +108,15 @@ export default function Statements() {
           data={transactions}
           pageSize={30}
           title="Transaction Details"
-          sub={`${transactions.length.toLocaleString()} parsed transactions across all statements`}
+          sub={`${transactions.length.toLocaleString()} transactions · click + to add a row as a lender`}
+        />
+      )}
+
+      {/* Add-lender modal */}
+      {modalTxn && (
+        <AddLenderModal
+          txn={modalTxn}
+          onClose={() => setModalTxn(null)}
         />
       )}
     </div>

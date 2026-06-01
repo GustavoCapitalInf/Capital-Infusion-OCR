@@ -16,9 +16,24 @@ function StatCard({ label, value, sub, valueClass = 'text-text-primary' }) {
 }
 
 const lenderCols = [
-  { key: 'lender',    label: 'Lender',   render: (v) => <span className="font-semibold text-text-primary">{v || 'Unknown'}</span> },
-  { key: 'keyword',   label: 'Keyword',  render: (v) => <span className="badge badge-blue">{v}</span> },
-  { key: 'amount',    label: 'Amount',   render: (v) => <span className="font-bold text-amber">{$(v)}</span> },
+  {
+    key: 'lender', label: 'Lender',
+    render: (v, row) => (
+      <div className="flex items-center gap-2">
+        <span className="font-semibold text-text-primary">{v || 'Unknown'}</span>
+        {row.manual && <span className="badge badge-blue">Manual</span>}
+      </div>
+    ),
+  },
+  {
+    key: 'keyword', label: 'Type',
+    render: (v, row) => (
+      <span className={`badge ${row.type === 'credit' ? 'badge-green' : 'badge-amber'}`}>
+        {row.type === 'credit' ? 'Credit' : 'Debit'}
+      </span>
+    ),
+  },
+  { key: 'amount',    label: 'Amount',   render: (v, row) => <span className={`font-bold ${row.type === 'credit' ? 'text-green' : 'text-amber'}`}>{$(v)}</span> },
   { key: 'statement', label: 'Statement',render: (v) => <span className="text-xs text-text-muted font-mono truncate max-w-[160px] block">{v}</span> },
 ]
 
