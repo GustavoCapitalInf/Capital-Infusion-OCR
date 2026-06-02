@@ -28,7 +28,7 @@ app = FastAPI(
 _default_origins = ",".join([
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://capital-infusion-ocr-go24.onrender.com",
+    "https://capital-infusion-ocr-cbs3.onrender.com",
 ])
 origins = os.environ.get("CORS_ORIGINS", _default_origins).split(",")
 
