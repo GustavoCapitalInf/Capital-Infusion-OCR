@@ -132,8 +132,12 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
     file_bytes_io = io.BytesIO(raw_bytes) if ext == ".pdf" else None
     file_summary = route_and_extract(original_text, translated_text, file_bytes_io)
 
+    print(f"[process_file] '{filename}' file_summary={file_summary}")
+
     raw_df = _prep_raw_df(raw_df) if not raw_df.empty else pd.DataFrame()
     temp_df = prepare_dataframe(raw_df) if not raw_df.empty else pd.DataFrame()
+
+    print(f"[process_file] raw_df rows={len(raw_df)}, temp_df rows={len(temp_df)}")
 
     if file_summary["credits_amount"] > 0 or file_summary["debits_amount"] > 0:
         file_credits = file_summary["credits_amount"]
@@ -141,6 +145,8 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
     else:
         file_credits = temp_df["Credit"].sum() if not temp_df.empty and "Credit" in temp_df.columns else 0.0
         file_debits  = temp_df["Debit"].sum()  if not temp_df.empty and "Debit"  in temp_df.columns else 0.0
+
+    print(f"[process_file] '{filename}' file_credits={file_credits}, file_debits={file_debits}")
 
     if not raw_df.empty:
         lender_rows, lender_debit_total, _ = get_lender_debits(raw_df, file_credits)

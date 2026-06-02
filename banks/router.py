@@ -183,6 +183,21 @@ def _pdf_direct_extract(uploaded_file) -> dict:
                         credits_amount = _take(0)
                     elif "WITHDRAWALS AND OTHER DEBITS" in upper:
                         debits_amount = _take(0)
+                    # ── RBC format ──────────────────────────────────────────
+                    # "Total deposits & credits (44) + 68,770.44"
+                    elif "DEPOSITS" in upper and "CREDITS" in upper and "&" in clean_line:
+                        cnt_m = re.search(r"\((\d+)\)", clean_line)
+                        if amounts:
+                            credits_amount = abs(clean_money(amounts[-1]))
+                            credit_count = int(cnt_m.group(1)) if cnt_m else 0
+                            print(f"[PDF direct RBC] credits={credits_amount}, count={credit_count}")
+                    # "Total cheques & debits (144) - 74,947.80"
+                    elif "CHEQUES" in upper and "DEBITS" in upper:
+                        cnt_m = re.search(r"\((\d+)\)", clean_line)
+                        if amounts:
+                            debits_amount = abs(clean_money(amounts[-1]))
+                            debit_count = int(cnt_m.group(1)) if cnt_m else 0
+                            print(f"[PDF direct RBC] debits={debits_amount}, count={debit_count}")
 
                     # TD-style accumulated debits
                     amt = abs(clean_money(amounts[-1]))
@@ -234,31 +249,45 @@ def route_and_extract(
       3. Generic multi-pattern extractor
       4. Direct PDF line extraction (if uploaded_file provided)
     """
+    print(f"[route_and_extract] original_len={len(original_text)}, translated_len={len(translated_text)}")
+
     # Try each bank-specific parser
     for parser_cls in PARSERS:
-        if parser_cls.is_this_bank(original_text):
+        matched = parser_cls.is_this_bank(original_text)
+        if matched:
+            print(f"[route_and_extract] matched parser: {parser_cls.NAME}")
             result = parser_cls.extract_summary(original_text)
+            print(f"[route_and_extract] {parser_cls.NAME}(original) -> {result}")
             if result["credits_amount"] > 0 or result["debits_amount"] > 0:
                 return result
             # Try translated text with the same parser
             result = parser_cls.extract_summary(translated_text)
+            print(f"[route_and_extract] {parser_cls.NAME}(translated) -> {result}")
             if result["credits_amount"] > 0 or result["debits_amount"] > 0:
                 return result
 
+    print("[route_and_extract] no bank-specific parser returned non-zero; trying generic")
+
     # Generic fallback on original
     result = _generic_extract(original_text)
+    print(f"[route_and_extract] generic(original) -> {result}")
     if result["credits_amount"] > 0 or result["debits_amount"] > 0:
         return result
 
     # Generic fallback on translated
     result = _generic_extract(translated_text)
+    print(f"[route_and_extract] generic(translated) -> {result}")
     if result["credits_amount"] > 0 or result["debits_amount"] > 0:
         return result
 
     # Last resort — parse the raw PDF pages directly
     if uploaded_file is not None:
-        return _pdf_direct_extract(uploaded_file)
+        print("[route_and_extract] trying _pdf_direct_extract")
+        result = _pdf_direct_extract(uploaded_file)
+        print(f"[route_and_extract] _pdf_direct_extract -> {result}")
+        return result
 
+    print("[route_and_extract] all methods exhausted — returning zeros")
     return {
         "credits_amount": 0.0,
         "debits_amount": 0.0,
