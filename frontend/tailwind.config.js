@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       // ── Typography (Calistoga + Inter + JetBrains Mono — fintech SaaS stack)
@@ -11,38 +12,45 @@ export default {
       },
 
       // ── Color tokens (Financial Dashboard palette from ui-ux-pro-max)
+      // Semantic tokens are wired to CSS variables so dark mode switches automatically.
       colors: {
-        // Sidebar (OLED dark)
+        // Sidebar (OLED dark — same in both modes)
         sidebar: {
           DEFAULT: '#080E1C',
           hover:   '#0D1528',
           border:  'rgba(255,255,255,0.06)',
-          muted:   '#94A3B8',   // 7.3:1 contrast on sidebar bg ✓ WCAG AA
-          dim:     '#64748B',   // 4.36:1 — use only for decorative, not text
+          muted:   '#94A3B8',
+          dim:     '#64748B',
         },
-        // Main surfaces
-        surface: '#F8FAFC',
-        card:    { DEFAULT: '#FFFFFF', hover: '#FAFBFC' },
-        // Fintech semantic palette
-        accent:  { DEFAULT: '#22C55E', dark: '#16A34A', light: '#F0FDF4', border: '#BBF7D0' }, // green = positive
-        primary: { DEFAULT: '#2563EB', dark: '#1D4ED8', light: '#EFF6FF', border: '#BFDBFE' }, // blue = action
+        // Surfaces — driven by CSS vars (see index.css :root / html.dark)
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        card: {
+          DEFAULT: 'rgb(var(--card) / <alpha-value>)',
+          hover:   'rgb(var(--card-hover) / <alpha-value>)',
+        },
+        // Fintech semantic palette (kept constant — work on both backgrounds)
+        accent:  { DEFAULT: '#22C55E', dark: '#16A34A', light: '#F0FDF4', border: '#BBF7D0' },
+        primary: { DEFAULT: '#2563EB', dark: '#1D4ED8', light: '#EFF6FF', border: '#BFDBFE' },
         danger:  { DEFAULT: '#EF4444', light: '#FEF2F2', border: '#FECACA' },
         warning: { DEFAULT: '#F59E0B', light: '#FFFBEB', border: '#FDE68A' },
         purple:  { DEFAULT: '#7C3AED', light: '#F5F3FF', border: '#DDD6FE' },
-        // Legacy aliases (keeps existing components working)
+        // Legacy aliases (keep existing components working)
         blue:    { DEFAULT: '#2563EB', dark: '#1D4ED8', light: '#EFF6FF', border: '#BFDBFE',
                    50:'#EFF6FF', 100:'#DBEAFE', 200:'#BFDBFE', 600:'#2563EB', 700:'#1D4ED8' },
         green:   { DEFAULT: '#22C55E', light: '#F0FDF4', border: '#BBF7D0', 600:'#16A34A', 700:'#15803D' },
         red:     { DEFAULT: '#EF4444', light: '#FEF2F2', border: '#FECACA', 600:'#DC2626' },
         amber:   { DEFAULT: '#F59E0B', light: '#FFFBEB', border: '#FDE68A', 600:'#D97706' },
-        // Text scale (all meet 4.5:1 on #FFFFFF)
+        // Text scale — driven by CSS vars (auto-flips in dark mode)
         text: {
-          primary:   '#0F172A',  // 19:1 on white ✓
-          secondary: '#334155',  // 10:1 on white ✓
-          muted:     '#64748B',  // 5.9:1 on white ✓
-          dim:       '#94A3B8',  // 3.3:1 — large text / decorative only
+          primary:   'rgb(var(--text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
+          muted:     'rgb(var(--text-muted) / <alpha-value>)',
+          dim:       'rgb(var(--text-dim) / <alpha-value>)',
         },
-        border: { DEFAULT: '#E2E8F0', light: '#F1F5F9' },
+        border: {
+          DEFAULT: 'rgb(var(--border) / <alpha-value>)',
+          light:   'rgb(var(--border-light) / <alpha-value>)',
+        },
       },
 
       // ── Elevation scale

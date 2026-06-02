@@ -2,8 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Font loading — font-display:swap prevents FOIT (ux-guidelines: font-loading) ── */
+/* ── Theme variables ────────────────────────────────────────────────────────
+   Semantic surfaces / text / borders are CSS vars so they switch in dark mode.
+   Format: "R G B" — Tailwind's <alpha-value> pattern needs space-separated rgb.
+*/
 @layer base {
+  :root {
+    /* Light theme — Financial Dashboard palette */
+    --surface:        248 250 252;  /* #F8FAFC */
+    --card:           255 255 255;  /* #FFFFFF */
+    --card-hover:     250 251 252;  /* #FAFBFC */
+    --border:         226 232 240;  /* #E2E8F0 */
+    --border-light:   241 245 249;  /* #F1F5F9 */
+    --text-primary:    15  23  42;  /* #0F172A  19:1 on white ✓ */
+    --text-secondary:  51  65  85;  /* #334155  10:1 on white ✓ */
+    --text-muted:     100 116 139;  /* #64748B  5.9:1 on white ✓ */
+    --text-dim:       148 163 184;  /* #94A3B8  3.3:1 — decorative only */
+
+    /* Chart theme tokens (read by Recharts) */
+    --chart-grid:     241 245 249;  /* #F1F5F9 — subtle gridlines */
+    --chart-axis:     100 116 139;  /* #64748B — axis labels */
+    --chart-cursor:   248 250 252;  /* #F8FAFC — bar hover overlay */
+    --chart-ref:      203 213 225;  /* #CBD5E1 — reference lines */
+    --chart-dot:      255 255 255;  /* white dot stroke */
+
+    color-scheme: light;
+  }
+
+  html.dark {
+    /* Dark theme — deeper than sidebar so sidebar reads as elevated */
+    --surface:          5  10  22;  /* #050A16 — page bg, deepest */
+    --card:            14  22  41;  /* #0E1629 — card surface */
+    --card-hover:      19  29  53;  /* #131D35 — card hover */
+    --border:          30  41  59;  /* #1E293B — divider lines */
+    --border-light:    22  30  46;  /* #161E2E — subtle dividers */
+    --text-primary:   248 250 252;  /* #F8FAFC  18:1 on card ✓ */
+    --text-secondary: 203 213 225;  /* #CBD5E1  11.5:1 ✓ */
+    --text-muted:     148 163 184;  /* #94A3B8  7.3:1 ✓ */
+    --text-dim:       100 116 139;  /* #64748B  4.6:1 — decorative/large only */
+
+    /* Chart theme tokens for dark */
+    --chart-grid:      30  41  59;  /* subtle dark gridline */
+    --chart-axis:     148 163 184;  /* readable axis */
+    --chart-cursor:    30  41  59;  /* hover overlay */
+    --chart-ref:       71  85 105;  /* reference line */
+    --chart-dot:       14  22  41;  /* dot stroke matches card */
+
+    color-scheme: dark;
+  }
+
+  /* ── Font loading — font-display:swap prevents FOIT ── */
   @font-face { font-display: swap; }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -11,25 +59,27 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Tabular numbers everywhere — prevents layout shift in data tables */
     font-variant-numeric: tabular-nums;
   }
 
   body {
     @apply bg-surface text-text-primary font-sans;
     line-height: 1.6;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 
-  /* Heading scale: Calistoga display font (fintech SaaS design system) */
+  /* Heading scale: Calistoga display font */
   h1, h2 { @apply font-display; }
 
-  /* Custom scrollbar */
+  /* Custom scrollbar — adapts to theme */
   ::-webkit-scrollbar            { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track      { background: transparent; }
-  ::-webkit-scrollbar-thumb      { @apply bg-slate-300 rounded-full; }
-  ::-webkit-scrollbar-thumb:hover{ @apply bg-slate-400; }
+  ::-webkit-scrollbar-thumb      { background: rgb(203 213 225); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover{ background: rgb(148 163 184); }
+  .dark ::-webkit-scrollbar-thumb      { background: rgb(51 65 85); }
+  .dark ::-webkit-scrollbar-thumb:hover{ background: rgb(71 85 105); }
 
-  /* Reduced-motion: honour system preference (ux-guidelines: reduced-motion) */
+  /* Reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -38,7 +88,7 @@
     }
   }
 
-  /* Focus rings — visible keyboard navigation (ux-guidelines: focus-states) */
+  /* Focus rings — visible keyboard nav */
   :focus-visible {
     outline: 2px solid #2563EB;
     outline-offset: 2px;
@@ -57,16 +107,22 @@
   .page-header h1{ @apply text-2xl font-bold text-text-primary tracking-tight; }
   .page-header p { @apply text-sm text-text-muted mt-1; }
 
-  /* ── Badge system (color alone is never the only indicator — ux-guidelines: color-not-only) ── */
+  /* ── Badge system — light + dark variants ── */
   .badge         { @apply inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border font-sans; }
-  .badge-green   { @apply bg-green-light  text-green-600   border-green-border; }
-  .badge-red     { @apply bg-red-light    text-red-600     border-red-border; }
-  .badge-amber   { @apply bg-amber-light  text-amber-600   border-amber-border; }
-  .badge-blue    { @apply bg-blue-50      text-blue-700    border-blue-200; }
-  .badge-purple  { @apply bg-purple-light text-purple      border-purple-border; }
-  .badge-gray    { @apply bg-gray-100     text-gray-600    border-gray-200; }
+  .badge-green   { @apply bg-green-light  text-green-600   border-green-border
+                          dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/30; }
+  .badge-red     { @apply bg-red-light    text-red-600     border-red-border
+                          dark:bg-red-500/15   dark:text-red-300   dark:border-red-500/30; }
+  .badge-amber   { @apply bg-amber-light  text-amber-600   border-amber-border
+                          dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30; }
+  .badge-blue    { @apply bg-blue-50      text-blue-700    border-blue-200
+                          dark:bg-blue-500/15  dark:text-blue-300  dark:border-blue-500/30; }
+  .badge-purple  { @apply bg-purple-light text-purple      border-purple-border
+                          dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30; }
+  .badge-gray    { @apply bg-gray-100     text-gray-600    border-gray-200
+                          dark:bg-white/10     dark:text-slate-300 dark:border-white/10; }
 
-  /* ── Primary button — 44px min touch target (ux-guidelines: touch-target-size) ── */
+  /* ── Primary button — 44px min touch target ── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 min-h-[44px]
            bg-primary text-white rounded-xl px-5 py-2.5 text-sm font-semibold
@@ -77,7 +133,7 @@
            disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
   }
 
-  /* ── Number display — always JetBrains Mono (tabular) ── */
+  /* ── Number display — always JetBrains Mono ── */
   .num           { @apply font-mono tabular-nums; }
 
   /* ── Skeleton shimmer ── */
@@ -86,16 +142,15 @@
     background-size: 200% 100%;
     @apply animate-shimmer rounded-xl;
   }
+  .dark .skeleton {
+    background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
+    background-size: 200% 100%;
+  }
 
-  /* ── Section divider with centred label ── */
-  .section-divider {
-    @apply flex items-center gap-4 my-8;
-  }
+  /* ── Section divider ── */
+  .section-divider { @apply flex items-center gap-4 my-8; }
   .section-divider::before,
-  .section-divider::after {
-    content: '';
-    @apply flex-1 h-px bg-border;
-  }
+  .section-divider::after { content: ''; @apply flex-1 h-px bg-border; }
 }
 
 @layer utilities {
@@ -110,9 +165,19 @@
     background-clip: text;
   }
 
-  /* Dot-grid background texture */
+  /* Dot-grid texture — auto-adjusts in dark */
   .bg-dot-grid {
     background-image: radial-gradient(circle, #CBD5E1 1px, transparent 1px);
     background-size: 20px 20px;
+  }
+  .dark .bg-dot-grid {
+    background-image: radial-gradient(circle, #334155 1px, transparent 1px);
+  }
+  .bg-grid {
+    background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .dark .bg-grid {
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
   }
 }

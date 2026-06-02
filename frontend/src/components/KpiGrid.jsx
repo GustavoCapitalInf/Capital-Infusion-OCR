@@ -38,8 +38,10 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
         <button
           onClick={() => toggleKpi(sectionKey)}
           className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted hover:text-blue-600
-                     bg-white border border-border rounded-full px-4 py-1.5 shadow-xs
-                     transition-all hover:border-blue-300 hover:shadow-blue"
+                     dark:hover:text-blue-300
+                     bg-card border border-border rounded-full px-4 py-1.5 shadow-xs
+                     transition-all hover:border-blue-300 dark:hover:border-blue-500/40 hover:shadow-blue
+                     cursor-pointer"
         >
           {expanded
             ? <><ChevronUp size={11} /> Show less</>

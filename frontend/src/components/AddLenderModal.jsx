@@ -52,17 +52,17 @@ export default function AddLenderModal({ txn, onClose }) {
     // Backdrop
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.45)' }}
+      style={{ background: 'rgba(0,0,0,0.55)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       {/* Modal */}
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md animate-slide-up border border-border overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-lg w-full max-w-md animate-slide-up border border-border overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
-              <Building2 size={15} className="text-blue-600" />
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center">
+              <Building2 size={15} className="text-blue-600 dark:text-blue-300" />
             </div>
             <p className="font-sans text-[14px] font-bold text-text-primary">Add as Lender</p>
           </div>
@@ -70,7 +70,8 @@ export default function AddLenderModal({ txn, onClose }) {
             onClick={onClose}
             aria-label="Close"
             className="w-7 h-7 rounded-full flex items-center justify-center text-text-muted
-                       hover:bg-gray-100 hover:text-text-primary transition-colors"
+                       hover:bg-gray-100 dark:hover:bg-white/10 hover:text-text-primary
+                       transition-colors cursor-pointer"
           >
             <X size={14} />
           </button>
@@ -78,7 +79,7 @@ export default function AddLenderModal({ txn, onClose }) {
 
         <div className="px-6 py-5 space-y-5">
           {/* Transaction preview */}
-          <div className="bg-gray-50 border border-border rounded-xl px-4 py-3">
+          <div className="bg-gray-50 dark:bg-white/[0.03] border border-border rounded-xl px-4 py-3">
             <p className="font-sans text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1">
               Transaction
             </p>
@@ -87,8 +88,8 @@ export default function AddLenderModal({ txn, onClose }) {
             </p>
             <div className="flex items-center gap-4 mt-1">
               <span className="font-mono text-xs text-text-muted">{txn.Date || '—'}</span>
-              {txn.Debit  > 0 && <span className="font-mono text-xs font-semibold text-red">-{$(txn.Debit)}</span>}
-              {txn.Credit > 0 && <span className="font-mono text-xs font-semibold text-green">+{$(txn.Credit)}</span>}
+              {txn.Debit  > 0 && <span className="font-mono text-xs font-semibold text-red dark:text-red-400">-{$(txn.Debit)}</span>}
+              {txn.Credit > 0 && <span className="font-mono text-xs font-semibold text-green dark:text-green-400">+{$(txn.Credit)}</span>}
             </div>
           </div>
 
@@ -96,8 +97,8 @@ export default function AddLenderModal({ txn, onClose }) {
           <div className={clsx(
             'flex items-center justify-between rounded-xl px-4 py-2.5 border text-xs font-semibold',
             matchingTxns.length > 1
-              ? 'bg-blue-50 border-blue-100 text-blue-700'
-              : 'bg-gray-50 border-border text-text-muted'
+              ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/30 text-blue-700 dark:text-blue-300'
+              : 'bg-gray-50 dark:bg-white/[0.03] border-border text-text-muted'
           )}>
             <span>
               {matchingTxns.length} matching transaction{matchingTxns.length !== 1 ? 's' : ''} found
@@ -120,12 +121,12 @@ export default function AddLenderModal({ txn, onClose }) {
                   onClick={() => !disabled && setType(value)}
                   disabled={disabled}
                   className={clsx(
-                    'flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition-all',
+                    'flex items-center gap-2.5 px-4 py-3 rounded-xl border text-left transition-all cursor-pointer',
                     type === value && !disabled
                       ? color === 'red'
-                        ? 'bg-red-light border-red-border text-red'
-                        : 'bg-green-light border-green-border text-green'
-                      : 'border-border text-text-muted hover:border-gray-300',
+                        ? 'bg-red-light   dark:bg-red-500/15   border-red-border   dark:border-red-500/30   text-red   dark:text-red-300'
+                        : 'bg-green-light dark:bg-green-500/15 border-green-border dark:border-green-500/30 text-green dark:text-green-300'
+                      : 'border-border text-text-muted hover:border-gray-300 dark:hover:border-white/15',
                     disabled && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -155,17 +156,18 @@ export default function AddLenderModal({ txn, onClose }) {
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
               placeholder="e.g. Kapitus, Fundworks, BlueVine…"
-              className="w-full font-sans text-sm px-4 py-2.5 bg-gray-50 border border-border rounded-xl
+              className="w-full font-sans text-sm px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-border rounded-xl
                          outline-none text-text-primary placeholder-text-muted
-                         focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-100
+                         focus:bg-white dark:focus:bg-white/10 focus:border-blue-300
+                         focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/20
                          transition-all"
             />
           </div>
 
           {/* Impact preview */}
           {name.trim() && totalAmount > 0 && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 space-y-1.5 animate-fade-in">
-              <p className="font-sans text-[11px] font-bold uppercase tracking-wider text-blue-400 mb-2">
+            <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 rounded-xl px-4 py-3 space-y-1.5 animate-fade-in">
+              <p className="font-sans text-[11px] font-bold uppercase tracking-wider text-blue-500 dark:text-blue-300 mb-2">
                 Impact Preview
               </p>
               <div className="flex justify-between">
@@ -179,7 +181,7 @@ export default function AddLenderModal({ txn, onClose }) {
               {type === 'debit' && (
                 <div className="flex justify-between">
                   <span className="font-sans text-xs text-text-secondary">Withholding Rate</span>
-                  <span className={clsx('font-mono text-xs font-semibold', whDelta > 0 ? 'text-red' : 'text-green')}>
+                  <span className={clsx('font-mono text-xs font-semibold', whDelta > 0 ? 'text-red dark:text-red-400' : 'text-green dark:text-green-400')}>
                     {prevWHRate.toFixed(1)}% → {newWHRate.toFixed(1)}%
                     <span className="text-[10px] ml-1 opacity-70">
                       ({whDelta >= 0 ? '+' : ''}{whDelta.toFixed(2)}%)
@@ -192,11 +194,11 @@ export default function AddLenderModal({ txn, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-border bg-gray-50">
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-border bg-gray-50 dark:bg-white/[0.03]">
           <button
             onClick={onClose}
-            className="flex-1 font-sans text-sm font-semibold text-text-secondary bg-white border border-border
-                       rounded-xl py-2.5 hover:bg-gray-100 transition-colors"
+            className="flex-1 font-sans text-sm font-semibold text-text-secondary bg-card border border-border
+                       rounded-xl py-2.5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -205,7 +207,7 @@ export default function AddLenderModal({ txn, onClose }) {
             disabled={!name.trim() || !matchingTxns.length}
             className="flex-1 flex items-center justify-center gap-2 font-sans text-sm font-semibold
                        text-white bg-blue-600 rounded-xl py-2.5 hover:bg-blue-700 transition-all
-                       disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                       disabled:opacity-40 disabled:cursor-not-allowed shadow-sm cursor-pointer"
           >
             <Plus size={14} />
             Add {matchingTxns.length > 1 ? `${matchingTxns.length} Transactions` : 'Lender'}

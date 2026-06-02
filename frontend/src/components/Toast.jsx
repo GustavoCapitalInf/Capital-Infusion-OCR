@@ -24,20 +24,22 @@ export default function Toast({ message, type = 'success', onClose, duration = 4
       aria-live="polite"
       className={clsx(
         'fixed bottom-6 right-6 z-50 flex items-start gap-3 px-4 py-3.5',
-        'rounded-2xl border shadow-lg min-w-[280px] max-w-sm animate-slide-up',
+        'rounded-2xl border shadow-lg min-w-[280px] max-w-sm animate-slide-up bg-card',
         isSuccess
-          ? 'bg-white border-green-border'
-          : 'bg-white border-red-border'
+          ? 'border-green-border dark:border-green-500/30'
+          : 'border-red-border   dark:border-red-500/30'
       )}
     >
       {/* Icon */}
       <div className={clsx(
         'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0',
-        isSuccess ? 'bg-green-light' : 'bg-red-light'
+        isSuccess
+          ? 'bg-green-light dark:bg-green-500/15'
+          : 'bg-red-light   dark:bg-red-500/15'
       )}>
         {isSuccess
-          ? <CheckCircle2 size={16} className="text-green" strokeWidth={2} />
-          : <XCircle     size={16} className="text-red"   strokeWidth={2} />}
+          ? <CheckCircle2 size={16} className="text-green dark:text-green-300" strokeWidth={2} />
+          : <XCircle     size={16} className="text-red   dark:text-red-300"   strokeWidth={2} />}
       </div>
 
       {/* Text */}
@@ -55,7 +57,8 @@ export default function Toast({ message, type = 'success', onClose, duration = 4
         onClick={onClose}
         aria-label="Dismiss notification"
         className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center
-                   text-text-muted hover:text-text-primary hover:bg-gray-100 transition-colors"
+                   text-text-muted hover:text-text-primary hover:bg-gray-100 dark:hover:bg-white/10
+                   transition-colors cursor-pointer"
       >
         <X size={11} />
       </button>

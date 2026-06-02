@@ -32,9 +32,9 @@ const EXPORTS = [
 ]
 
 const ACCENT = {
-  blue:   { icon: 'bg-blue-50 text-blue-600', btn: 'bg-blue-600 hover:bg-blue-700', ring: 'hover:border-blue-300 hover:shadow-blue/20', badge: 'bg-blue-50 text-blue-600 border-blue-200' },
-  green:  { icon: 'bg-green-light text-green', btn: 'bg-green hover:bg-green-700',   ring: 'hover:border-green-200 hover:shadow-green/10', badge: 'bg-green-light text-green border-green-border' },
-  purple: { icon: 'bg-purple-light text-purple', btn: 'bg-purple hover:bg-purple-700', ring: 'hover:border-purple-200 hover:shadow-purple/10', badge: 'bg-purple-light text-purple border-purple-border' },
+  blue:   { icon: 'bg-blue-50     dark:bg-blue-500/15   text-blue-600  dark:text-blue-300',  btn: 'bg-blue-600   hover:bg-blue-700',   ring: 'hover:border-blue-300   dark:hover:border-blue-500/40 hover:shadow-blue/20',  badge: 'bg-blue-50     dark:bg-blue-500/15  text-blue-600  dark:text-blue-300  border-blue-200  dark:border-blue-500/30' },
+  green:  { icon: 'bg-green-light dark:bg-green-500/15  text-green     dark:text-green-300', btn: 'bg-green      hover:bg-green-700',  ring: 'hover:border-green-200  dark:hover:border-green-500/40 hover:shadow-green/10', badge: 'bg-green-light dark:bg-green-500/15 text-green     dark:text-green-300 border-green-border dark:border-green-500/30' },
+  purple: { icon: 'bg-purple-light dark:bg-purple-500/15 text-purple   dark:text-purple-300', btn: 'bg-purple    hover:bg-purple-700', ring: 'hover:border-purple-200 dark:hover:border-purple-500/40 hover:shadow-purple/10', badge: 'bg-purple-light dark:bg-purple-500/15 text-purple   dark:text-purple-300 border-purple-border dark:border-purple-500/30' },
 }
 
 export default function Export() {
@@ -63,9 +63,9 @@ export default function Export() {
       </div>
 
       {!hasData ? (
-        <div className="bg-white border border-border rounded-2xl p-20 text-center shadow-xs">
-          <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-            <Download size={22} className="text-gray-400" strokeWidth={1.5} />
+        <div className="bg-card border border-border rounded-2xl p-20 text-center shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <Download size={22} className="text-gray-400 dark:text-slate-500" strokeWidth={1.5} />
           </div>
           <p className="text-sm font-semibold text-text-primary mb-1">Nothing to export yet</p>
           <p className="text-xs text-text-muted">Upload and analyse statements first</p>
@@ -81,7 +81,7 @@ export default function Export() {
                 <div
                   key={id}
                   className={clsx(
-                    'bg-white border border-border rounded-2xl p-6 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
+                    'bg-card border border-border rounded-2xl p-6 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
                     a.ring
                   )}
                 >
@@ -89,7 +89,7 @@ export default function Export() {
                     <div className={clsx('w-12 h-12 rounded-2xl flex items-center justify-center', a.icon)}>
                       <Icon size={22} strokeWidth={1.5} />
                     </div>
-                    <span className={clsx('badge', `bg-${accent === 'blue' ? 'blue-50 text-blue-600 border-blue-200' : accent === 'green' ? 'green-light text-green border-green-border' : 'purple-light text-purple border-purple-border'}`)}>
+                    <span className={clsx('badge', a.badge)}>
                       {format}
                     </span>
                   </div>
@@ -117,7 +117,7 @@ export default function Export() {
           </div>
 
           {/* Data summary */}
-          <div className="bg-white border border-border rounded-2xl p-5 shadow-xs">
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-xs">
             <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-4">Export Summary</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
@@ -126,7 +126,7 @@ export default function Export() {
                 { label: 'Lender Rows',   val: lenders.length },
                 { label: 'Risk Level',    val: risk?.level ?? '—' },
               ].map(({ label, val }) => (
-                <div key={label} className="text-center p-3 rounded-xl bg-gray-50 border border-border">
+                <div key={label} className="text-center p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-border">
                   <p className="text-[20px] font-extrabold text-text-primary tracking-tight">{val}</p>
                   <p className="text-[11px] text-text-muted font-medium mt-0.5">{label}</p>
                 </div>

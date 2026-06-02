@@ -19,8 +19,8 @@ const summaryCols = [
     key: 'filename', label: 'Statement',
     render: (v) => (
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <FileText size={12} className="text-blue-600" />
+        <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-500/15 flex items-center justify-center flex-shrink-0">
+          <FileText size={12} className="text-blue-600 dark:text-blue-300" />
         </div>
         <span className="font-medium text-text-primary text-sm truncate max-w-[180px]">{v}</span>
       </div>
@@ -64,8 +64,10 @@ export default function Statements() {
           title="Add as lender"
           aria-label="Add transaction as lender"
           className="w-6 h-6 rounded-full flex items-center justify-center
-                     bg-gray-100 text-text-muted border border-border
-                     hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200
+                     bg-gray-100 dark:bg-white/10 text-text-muted border border-border
+                     hover:bg-blue-50 dark:hover:bg-blue-500/15
+                     hover:text-blue-600 dark:hover:text-blue-300
+                     hover:border-blue-200 dark:hover:border-blue-500/40
                      transition-all duration-150 cursor-pointer"
         >
           <Plus size={11} strokeWidth={2.5} />
@@ -77,9 +79,9 @@ export default function Statements() {
   if (statements.length === 0) return (
     <div className="p-8 max-w-[1440px] mx-auto animate-fade-in">
       <div className="page-header"><h1>Statements</h1><p>Per-statement breakdown of all uploaded bank statements</p></div>
-      <div className="bg-white border border-border rounded-2xl p-20 text-center shadow-xs">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-          <FileText size={22} className="text-gray-400" strokeWidth={1.5} />
+      <div className="bg-card border border-border rounded-2xl p-20 text-center shadow-xs">
+        <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
+          <FileText size={22} className="text-gray-400 dark:text-slate-500" strokeWidth={1.5} />
         </div>
         <p className="text-sm font-semibold text-text-primary mb-1">No statements yet</p>
         <p className="text-xs text-text-muted">Upload files on the Dashboard to get started</p>

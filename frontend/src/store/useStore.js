@@ -63,7 +63,43 @@ function applyCustomKeywords(data, keywords) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Theme bootstrap (runs once on module load — before React paints) ─────────
+function readInitialTheme() {
+  if (typeof window === 'undefined') return 'light'
+  try {
+    const saved = localStorage.getItem('theme')
+    if (saved === 'dark' || saved === 'light') return saved
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  } catch {
+    return 'light'
+  }
+}
+
+function applyThemeToDOM(theme) {
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  if (theme === 'dark') root.classList.add('dark')
+  else root.classList.remove('dark')
+}
+
+const initialTheme = readInitialTheme()
+applyThemeToDOM(initialTheme)
+
 const useStore = create((set, get) => ({
+  // Theme
+  theme: initialTheme,
+  setTheme: (theme) => {
+    applyThemeToDOM(theme)
+    try { localStorage.setItem('theme', theme) } catch {}
+    set({ theme })
+  },
+  toggleTheme: () => {
+    const next = get().theme === 'dark' ? 'light' : 'dark'
+    applyThemeToDOM(next)
+    try { localStorage.setItem('theme', next) } catch {}
+    set({ theme: next })
+  },
+
   // Upload state
   isUploading: false,
   uploadError: null,

@@ -9,7 +9,7 @@ function SectionDivider({ label }) {
     <div className="flex items-center gap-4 my-8">
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <span className="text-[10px] font-bold uppercase tracking-[2px] text-text-muted
-                       px-4 py-1.5 bg-white border border-border rounded-full shadow-xs">
+                       px-4 py-1.5 bg-card border border-border rounded-full shadow-xs">
         {label}
       </span>
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -22,12 +22,12 @@ function SectionBlock({ dot = 'blue', title, sub, badge, children }) {
     ? 'bg-blue-600 shadow-blue/30'
     : 'bg-purple-600 shadow-purple/30'
   const badgeStyle = dot === 'blue'
-    ? 'bg-blue-50 text-blue-600 border-blue-200'
-    : 'bg-purple-50 text-purple-600 border-purple-200'
+    ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/30'
+    : 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/30'
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="flex items-center gap-4 bg-white border border-border rounded-2xl px-5 py-4 shadow-xs">
+      <div className="flex items-center gap-4 bg-card border border-border rounded-2xl px-5 py-4 shadow-xs">
         <div className={`w-2.5 h-2.5 rounded-full shadow-md flex-shrink-0 ${dotStyle}`} />
         <div className="flex-1">
           <p className="text-[15px] font-bold text-text-primary leading-none">{title}</p>
@@ -70,7 +70,7 @@ export default function Dashboard() {
               Bank Statement{' '}
               <span className="text-gradient">Analysis</span>
             </h1>
-            <p className="font-sans text-[14px] text-slate-500 leading-relaxed max-w-md">
+            <p className="font-sans text-[14px] text-slate-300 leading-relaxed max-w-md">
               Upload bank statements to extract financial metrics, detect lender activity, and generate instant risk assessments.
             </p>
           </div>
@@ -85,7 +85,7 @@ export default function Dashboard() {
               ].map(({ label, val }) => (
                 <div key={label} className="flex items-center justify-between gap-4
                                              bg-white/5 border border-white/8 rounded-xl px-4 py-2.5">
-                  <span className="text-[11px] text-gray-500 font-medium">{label}</span>
+                  <span className="text-[11px] text-slate-400 font-medium">{label}</span>
                   <span className="text-[13px] font-bold text-white">{val}</span>
                 </div>
               ))}

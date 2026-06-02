@@ -7,7 +7,7 @@ const $ = (n) => `$${Number(n ?? 0).toLocaleString('en-US', { minimumFractionDig
 
 function StatCard({ label, value, sub, valueClass = 'text-text-primary' }) {
   return (
-    <div className="bg-white border border-border rounded-2xl p-5 shadow-xs">
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-xs">
       <p className="text-[11px] font-bold uppercase tracking-[0.5px] text-text-muted mb-3">{label}</p>
       <p className={`text-[28px] font-extrabold tracking-tight leading-none ${valueClass}`}>{value}</p>
       {sub && <p className="text-xs text-text-muted mt-1.5 font-medium">{sub}</p>}
@@ -55,8 +55,10 @@ export default function Lenders() {
           title="Remove lender"
           aria-label="Remove manually added lender"
           className="w-6 h-6 rounded-full flex items-center justify-center
-                     text-text-dim hover:bg-red-light hover:text-red border border-transparent
-                     hover:border-red-border transition-all duration-150 cursor-pointer"
+                     text-text-dim hover:bg-red-light dark:hover:bg-red-500/15
+                     hover:text-red dark:hover:text-red-300 border border-transparent
+                     hover:border-red-border dark:hover:border-red-500/30
+                     transition-all duration-150 cursor-pointer"
         >
           <Trash2 size={11} strokeWidth={2} />
         </button>
@@ -86,13 +88,13 @@ export default function Lenders() {
             label="Total Lender Debits"
             value={$(totals.lender_debits)}
             sub="MCA repayments detected"
-            valueClass="text-amber"
+            valueClass="text-amber dark:text-amber-400"
           />
           <StatCard
             label="Withholding Rate"
             value={`${Number(totals.withholding_rate).toFixed(1)}%`}
             sub="Lender debits / total revenue"
-            valueClass={totals.withholding_rate > 15 ? 'text-red' : totals.withholding_rate > 8 ? 'text-amber' : 'text-green'}
+            valueClass={totals.withholding_rate > 15 ? 'text-red dark:text-red-400' : totals.withholding_rate > 8 ? 'text-amber dark:text-amber-400' : 'text-green dark:text-green-400'}
           />
           <StatCard
             label="Unique Lenders"
@@ -103,9 +105,9 @@ export default function Lenders() {
       )}
 
       {/* Saved lender keywords */}
-      <div className="bg-white border border-border rounded-2xl p-6 shadow-xs">
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
         <div className="flex items-center gap-2 mb-1">
-          <BookMarked size={15} className="text-blue-600" />
+          <BookMarked size={15} className="text-blue-600 dark:text-blue-300" />
           <p className="text-sm font-bold text-text-primary">Tracked Lender Keywords</p>
         </div>
         <p className="text-xs text-text-muted mb-4">
@@ -114,15 +116,17 @@ export default function Lenders() {
         {customLenderKeywords.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {customLenderKeywords.map((k, i) => (
-              <div key={i} className="flex items-center gap-2 bg-gray-50 border border-border rounded-xl px-3 py-2">
+              <div key={i} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 border border-border rounded-xl px-3 py-2">
                 <span className={`badge ${k.type === 'credit' ? 'badge-green' : 'badge-amber'}`}>{k.type}</span>
                 <span className="text-sm font-medium text-text-primary">{k.name}</span>
                 <button
                   onClick={() => removeCustomKeyword(k.name, k.type)}
                   title="Remove keyword"
                   className="w-5 h-5 rounded-full flex items-center justify-center
-                             text-text-dim hover:bg-red-light hover:text-red border border-transparent
-                             hover:border-red-border transition-all duration-150 ml-1"
+                             text-text-dim hover:bg-red-light dark:hover:bg-red-500/15
+                             hover:text-red dark:hover:text-red-300 border border-transparent
+                             hover:border-red-border dark:hover:border-red-500/30
+                             transition-all duration-150 ml-1 cursor-pointer"
                 >
                   <X size={10} strokeWidth={2.5} />
                 </button>
@@ -136,17 +140,17 @@ export default function Lenders() {
 
       {/* Bar breakdown */}
       {totalsPerLender.length > 0 && (
-        <div className="bg-white border border-border rounded-2xl p-6 shadow-xs">
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
           <p className="text-sm font-bold text-text-primary mb-1">Lender Breakdown</p>
           <p className="text-xs text-text-muted mb-6">Total repayments per detected lender</p>
           <div className="space-y-4">
             {totalsPerLender.map(({ lender, total }) => (
               <div key={lender} className="flex items-center gap-4">
-                <div className="w-7 h-7 rounded-lg bg-amber-light flex items-center justify-center flex-shrink-0">
-                  <Building2 size={12} className="text-amber" />
+                <div className="w-7 h-7 rounded-lg bg-amber-light dark:bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                  <Building2 size={12} className="text-amber dark:text-amber-300" />
                 </div>
                 <span className="text-sm font-medium text-text-primary w-44 truncate">{lender || 'Unknown'}</span>
-                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="flex-1 h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-2 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500"
                     style={{ width: `${(total / max) * 100}%` }}
@@ -174,7 +178,7 @@ export default function Lenders() {
       {flagged.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={15} className="text-red" />
+            <AlertTriangle size={15} className="text-red dark:text-red-400" />
             <p className="text-sm font-bold text-text-primary">Flagged Transactions</p>
             <span className="badge badge-red ml-1">{flagged.length}</span>
           </div>
@@ -184,9 +188,9 @@ export default function Lenders() {
       )}
 
       {lenders.length === 0 && flagged.length === 0 && (
-        <div className="bg-white border border-border rounded-2xl p-20 text-center shadow-xs">
-          <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-            <Building2 size={22} className="text-gray-400" strokeWidth={1.5} />
+        <div className="bg-card border border-border rounded-2xl p-20 text-center shadow-xs">
+          <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <Building2 size={22} className="text-gray-400 dark:text-slate-500" strokeWidth={1.5} />
           </div>
           <p className="text-sm font-semibold text-text-primary mb-1">No lender activity detected</p>
           <p className="text-xs text-text-muted">Upload statements on the Dashboard to analyse lender activity</p>

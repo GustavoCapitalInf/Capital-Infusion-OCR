@@ -1,16 +1,11 @@
 /**
  * Charts.jsx
  * ----------
- * Design system applied:
- * - Bar chart for category comparison (chart domain: Compare Categories → Bar ✓)
- * - Area chart for trends (chart domain: Trend Over Time → Area ✓)
- * - Value labels on each bar (chart guideline: direct-labeling ✓)
- * - Legend included (chart guideline: legend-visible ✓)
- * - Tooltip on hover (chart guideline: tooltip-on-interact ✓)
- * - Colors + distinct visual encoding (guideline: color-not-only ✓)
- * - aria-label on chart wrapper (guideline: screen-reader-summary ✓)
- * - Subtle gridlines (guideline: gridline-subtle ✓)
- * - font-display:swap already in index.css (guideline: font-loading ✓)
+ * Theme-aware Recharts wrappers. Gridlines, axis ticks, cursor highlights
+ * and dot strokes adapt to light/dark mode via useChartTheme().
+ *
+ * Data colors (blue/green/red/purple/amber) stay constant — they read on
+ * both light and dark backgrounds and preserve the design system semantics.
  */
 import React from 'react'
 import {
@@ -19,8 +14,27 @@ import {
   Area, AreaChart, LabelList, PieChart, Pie, Cell,
   ComposedChart,
 } from 'recharts'
+import useStore from '../store/useStore'
 
-// Sort statements newest-first, handling ISO dates and month-name filenames
+// ── Theme hook ───────────────────────────────────────────────────────────────
+function useChartTheme() {
+  const theme = useStore((s) => s.theme)
+  const isDark = theme === 'dark'
+  return {
+    isDark,
+    grid:    isDark ? '#1E293B' : '#F1F5F9',         // CartesianGrid stroke
+    axis:    isDark ? '#94A3B8' : '#64748B',         // axis tick text
+    label:   isDark ? '#94A3B8' : '#64748B',         // LabelList text
+    cursor:  isDark ? 'rgba(148,163,184,0.08)' : '#F8FAFC',
+    ref:     isDark ? '#475569' : '#CBD5E1',         // ReferenceLine
+    dotStroke: isDark ? '#0E1629' : '#FFFFFF',       // dot border = card color
+    legend:  isDark ? '#94A3B8' : '#64748B',         // legend text
+    tooltipBg:     isDark ? '#020617' : '#0F172A',   // tooltip surface
+    tooltipBorder: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.10)',
+  }
+}
+
+// ── Statement sort helpers ───────────────────────────────────────────────────
 const MONTH_MAP = {
   january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
   july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
@@ -28,7 +42,7 @@ const MONTH_MAP = {
 }
 
 function parseSortKey(s) {
-  if (s.statement_date) return s.statement_date.slice(0, 7) // "2026-04" — lexicographically sortable
+  if (s.statement_date) return s.statement_date.slice(0, 7)
   const name = (s.filename ?? '').toLowerCase()
   const year  = (name.match(/\b(20\d{2})\b/) ?? [])[1] ?? '0000'
   for (const [word, num] of Object.entries(MONTH_MAP)) {
@@ -39,13 +53,10 @@ function parseSortKey(s) {
   return '0000-00'
 }
 
-const sortDesc = (statements) =>
-  [...statements].sort((a, b) => parseSortKey(b).localeCompare(parseSortKey(a)))
+const sortDesc = (statements) => [...statements].sort((a, b) => parseSortKey(b).localeCompare(parseSortKey(a)))
+const sortAsc  = (statements) => [...statements].sort((a, b) => parseSortKey(a).localeCompare(parseSortKey(b)))
 
-const sortAsc = (statements) =>
-  [...statements].sort((a, b) => parseSortKey(a).localeCompare(parseSortKey(b)))
-
-// Locale-aware number formatting (chart guideline: number-formatting)
+// ── Formatters ───────────────────────────────────────────────────────────────
 const fmtFull = (v) =>
   `$${Number(v ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
 const fmtK = (v) =>
@@ -54,14 +65,18 @@ const fmtK = (v) =>
     : Math.abs(v) >= 1000
     ? `$${(v / 1000).toFixed(0)}k`
     : `$${v}`
+const fmtPct   = (v) => `${Number(v ?? 0).toFixed(1)}%`
+const fmtInt   = (v) => String(Math.round(v ?? 0))
+const fmtRatio = (v) => `${Number(v ?? 0).toFixed(1)}×`
 
-// Custom tooltip — keyboard reachable via recharts default tab (guideline: tooltip-keyboard)
-const Tip = ({ active, payload, label, formatter = fmtFull }) => {
+// ── Tooltip — themed wrapper ────────────────────────────────────────────────
+function Tip({ active, payload, label, formatter = fmtFull, t }) {
   if (!active || !payload?.length) return null
   return (
     <div
       role="tooltip"
-      className="bg-[#0F172A] text-white text-xs rounded-xl px-4 py-3 shadow-lg border border-white/10 font-sans"
+      className="text-white text-xs rounded-xl px-4 py-3 shadow-lg font-sans border"
+      style={{ background: t.tooltipBg, borderColor: t.tooltipBorder }}
     >
       <p className="font-semibold text-slate-400 mb-2 font-mono tracking-wide">{label}</p>
       {payload.map((p) => (
@@ -75,27 +90,34 @@ const Tip = ({ active, payload, label, formatter = fmtFull }) => {
   )
 }
 
-const fmtPct   = (v) => `${Number(v ?? 0).toFixed(1)}%`
-const fmtInt   = (v) => String(Math.round(v ?? 0))
-const fmtRatio = (v) => `${Number(v ?? 0).toFixed(1)}×`
+// ── Empty-state helper ──────────────────────────────────────────────────────
+const empty = (msg = 'No statement data yet', cls = 'h-60') => (
+  <div className={`flex items-center justify-center ${cls} text-sm text-text-muted font-sans text-center px-4`}>
+    {msg}
+  </div>
+)
 
-const sharedAxis = {
-  tick:     { fontSize: 11, fill: '#64748B', fontFamily: 'Inter, sans-serif' },
-  axisLine: false,
-  tickLine: false,
+// ── Themed axis primitives ──────────────────────────────────────────────────
+function ThemedGrid({ t }) { return <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} /> }
+function ThemedXAxis({ t }) {
+  return <XAxis dataKey="name" tick={{ fontSize: 11, fill: t.axis, fontFamily: 'Inter, sans-serif' }} axisLine={false} tickLine={false} />
 }
-
-// Low-contrast gridlines so they don't compete with data (guideline: gridline-subtle)
-const Grid = <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-const XAx  = <XAxis dataKey="name" {...sharedAxis} />
-const YAx  = <YAxis tickFormatter={fmtK} {...sharedAxis} width={54} />
-
-export function RevenueChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-60 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
+function ThemedYAxis({ t, formatter = fmtK, width = 54, allowDecimals = true }) {
+  return (
+    <YAxis
+      tickFormatter={formatter} width={width} allowDecimals={allowDecimals}
+      tick={{ fontSize: 11, fill: t.axis, fontFamily: 'Inter, sans-serif' }}
+      axisLine={false} tickLine={false}
+    />
   )
+}
+const legendStyle = (t) => ({ fontSize: 11, color: t.legend, paddingBottom: 4, fontFamily: 'Inter, sans-serif' })
+const labelStyle  = (t) => ({ fontSize: 9, fill: t.label, fontFamily: 'JetBrains Mono, monospace' })
+
+// ── Charts ──────────────────────────────────────────────────────────────────
+export function RevenueChart({ statements }) {
+  const t = useChartTheme()
+  if (!statements?.length) return empty()
 
   const data = sortDesc(statements).map((s) => ({
     name:            s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
@@ -105,30 +127,20 @@ export function RevenueChart({ statements }) {
   }))
 
   return (
-    // aria-label provides text summary for screen readers (guideline: screen-reader-summary)
     <div aria-label={`Revenue vs Debits bar chart across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barGap={3} barCategoryGap="28%">
-          {Grid}{XAx}{YAx}
-          <Tooltip content={<Tip />} cursor={{ fill: '#F8FAFC' }} />
-          {/* Legend at top — always visible, not detached below fold (guideline: legend-visible) */}
-          <Legend
-            wrapperStyle={{ fontSize: 11, color: '#64748B', paddingBottom: 4, fontFamily: 'Inter, sans-serif' }}
-            iconType="square" iconSize={8}
-          />
-          {/* Value labels on bars — direct-labeling for small datasets (guideline: direct-labeling) */}
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <Tooltip content={(p) => <Tip {...p} t={t} />} cursor={{ fill: t.cursor }} />
+          <Legend wrapperStyle={legendStyle(t)} iconType="square" iconSize={8} />
           <Bar dataKey="Credits" fill="#2563EB" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="Credits" position="top" formatter={fmtK}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="Credits" position="top" formatter={fmtK} style={labelStyle(t)} />
           </Bar>
           <Bar dataKey="Debits" fill="#EF4444" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="Debits" position="top" formatter={fmtK}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="Debits" position="top" formatter={fmtK} style={labelStyle(t)} />
           </Bar>
-          {/* Purple for lender debits — distinct from red/blue (guideline: color-not-only) */}
           <Bar dataKey="Lender Debits" fill="#7C3AED" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="Lender Debits" position="top" formatter={fmtK}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="Lender Debits" position="top" formatter={fmtK} style={labelStyle(t)} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -137,11 +149,8 @@ export function RevenueChart({ statements }) {
 }
 
 export function CashFlowChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-60 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty()
 
   const data = sortDesc(statements).map((s) => ({
     name:        s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
@@ -154,20 +163,17 @@ export function CashFlowChart({ statements }) {
         <AreaChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="cfGradPos" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#22C55E" stopOpacity={0.18} />
+              <stop offset="5%"  stopColor="#22C55E" stopOpacity={0.22} />
               <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
             </linearGradient>
           </defs>
-          {Grid}{XAx}{YAx}
-          <Tooltip content={<Tip />} />
-          <ReferenceLine y={0} stroke="#CBD5E1" strokeDasharray="4 4" />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <Tooltip content={(p) => <Tip {...p} t={t} />} />
+          <ReferenceLine y={0} stroke={t.ref} strokeDasharray="4 4" />
           <Area
-            type="monotone"
-            dataKey="Cash Flow"
-            stroke="#22C55E"
-            strokeWidth={2.5}
-            fill="url(#cfGradPos)"
-            dot={{ r: 4, fill: '#22C55E', stroke: 'white', strokeWidth: 2 }}
+            type="monotone" dataKey="Cash Flow"
+            stroke="#22C55E" strokeWidth={2.5} fill="url(#cfGradPos)"
+            dot={{ r: 4, fill: '#22C55E', stroke: t.dotStroke, strokeWidth: 2 }}
             activeDot={{ r: 6, strokeWidth: 2 }}
           />
         </AreaChart>
@@ -177,11 +183,8 @@ export function CashFlowChart({ statements }) {
 }
 
 export function DailyBalanceTrendChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-60 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty()
 
   const data = sortDesc(statements).map((s) => ({
     name:              s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
@@ -194,19 +197,16 @@ export function DailyBalanceTrendChart({ statements }) {
         <AreaChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#2563EB" stopOpacity={0.15} />
+              <stop offset="5%"  stopColor="#2563EB" stopOpacity={0.22} />
               <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
             </linearGradient>
           </defs>
-          {Grid}{XAx}{YAx}
-          <Tooltip content={<Tip />} />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <Tooltip content={(p) => <Tip {...p} t={t} />} />
           <Area
-            type="monotone"
-            dataKey="Avg Daily Balance"
-            stroke="#2563EB"
-            strokeWidth={2.5}
-            fill="url(#balGrad)"
-            dot={{ r: 4, fill: '#2563EB', stroke: 'white', strokeWidth: 2 }}
+            type="monotone" dataKey="Avg Daily Balance"
+            stroke="#2563EB" strokeWidth={2.5} fill="url(#balGrad)"
+            dot={{ r: 4, fill: '#2563EB', stroke: t.dotStroke, strokeWidth: 2 }}
             activeDot={{ r: 6, strokeWidth: 2 }}
           />
         </AreaChart>
@@ -216,11 +216,8 @@ export function DailyBalanceTrendChart({ statements }) {
 }
 
 export function FinancialOverviewChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-60 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty()
 
   const data = sortDesc(statements).map((s) => ({
     name:                s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
@@ -233,38 +230,13 @@ export function FinancialOverviewChart({ statements }) {
     <div aria-label={`Financial overview line chart across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
-          {Grid}{XAx}{YAx}
-          <Tooltip content={<Tip />} />
-          <Legend
-            wrapperStyle={{ fontSize: 11, color: '#64748B', paddingBottom: 4, fontFamily: 'Inter, sans-serif' }}
-            iconType="circle" iconSize={7}
-          />
-          <ReferenceLine y={0} stroke="#CBD5E1" strokeDasharray="4 4" />
-          <Line
-            type="monotone"
-            dataKey="Net Cash Flow"
-            stroke="#22C55E"
-            strokeWidth={2.5}
-            dot={{ r: 4, fill: '#22C55E', stroke: 'white', strokeWidth: 2 }}
-            activeDot={{ r: 6, strokeWidth: 2 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="Lender Credits"
-            stroke="#7C3AED"
-            strokeWidth={2.5}
-            dot={{ r: 4, fill: '#7C3AED', stroke: 'white', strokeWidth: 2 }}
-            activeDot={{ r: 6, strokeWidth: 2 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="Avg Daily Balance"
-            stroke="#2563EB"
-            strokeWidth={2.5}
-            strokeDasharray="5 3"
-            dot={{ r: 4, fill: '#2563EB', stroke: 'white', strokeWidth: 2 }}
-            activeDot={{ r: 6, strokeWidth: 2 }}
-          />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <Tooltip content={(p) => <Tip {...p} t={t} />} />
+          <Legend wrapperStyle={legendStyle(t)} iconType="circle" iconSize={7} />
+          <ReferenceLine y={0} stroke={t.ref} strokeDasharray="4 4" />
+          <Line type="monotone" dataKey="Net Cash Flow"     stroke="#22C55E" strokeWidth={2.5} dot={{ r: 4, fill: '#22C55E', stroke: t.dotStroke, strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 2 }} />
+          <Line type="monotone" dataKey="Lender Credits"    stroke="#7C3AED" strokeWidth={2.5} dot={{ r: 4, fill: '#7C3AED', stroke: t.dotStroke, strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 2 }} />
+          <Line type="monotone" dataKey="Avg Daily Balance" stroke="#2563EB" strokeWidth={2.5} strokeDasharray="5 3" dot={{ r: 4, fill: '#2563EB', stroke: t.dotStroke, strokeWidth: 2 }} activeDot={{ r: 6, strokeWidth: 2 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -272,18 +244,13 @@ export function FinancialOverviewChart({ statements }) {
 }
 
 export function WithholdingRateChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-52 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty('No statement data yet', 'h-52')
 
   const data = sortDesc(statements).map((s) => ({
     name:               s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
     'Withholding Rate': s.withholding_rate ?? 0,
   }))
-
-  const YAxPct = <YAxis tickFormatter={fmtPct} {...sharedAxis} width={42} />
 
   return (
     <div aria-label={`Withholding rate trend across ${data.length} statement(s)`}>
@@ -291,19 +258,16 @@ export function WithholdingRateChart({ statements }) {
         <AreaChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="whGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="#F59E0B" stopOpacity={0.18} />
+              <stop offset="5%"  stopColor="#F59E0B" stopOpacity={0.22} />
               <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
             </linearGradient>
           </defs>
-          {Grid}{XAx}{YAxPct}
-          <Tooltip content={<Tip formatter={fmtPct} />} />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtPct} width={42} />
+          <Tooltip content={(p) => <Tip {...p} formatter={fmtPct} t={t} />} />
           <Area
-            type="monotone"
-            dataKey="Withholding Rate"
-            stroke="#F59E0B"
-            strokeWidth={2.5}
-            fill="url(#whGrad)"
-            dot={{ r: 4, fill: '#F59E0B', stroke: 'white', strokeWidth: 2 }}
+            type="monotone" dataKey="Withholding Rate"
+            stroke="#F59E0B" strokeWidth={2.5} fill="url(#whGrad)"
+            dot={{ r: 4, fill: '#F59E0B', stroke: t.dotStroke, strokeWidth: 2 }}
             activeDot={{ r: 6, strokeWidth: 2 }}
           />
         </AreaChart>
@@ -313,31 +277,25 @@ export function WithholdingRateChart({ statements }) {
 }
 
 export function NSFCountChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-52 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty('No statement data yet', 'h-52')
 
   const data = sortDesc(statements).map((s) => ({
-    name:      s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+    name:        s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
     'NSF Count': s.nsf_count ?? 0,
   }))
-
-  const YAxInt = <YAxis tickFormatter={fmtInt} {...sharedAxis} width={32} allowDecimals={false} />
 
   return (
     <div aria-label={`NSF count bar chart across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barCategoryGap="36%">
-          {Grid}{XAx}{YAxInt}
-          <Tooltip content={<Tip formatter={fmtInt} />} cursor={{ fill: '#F8FAFC' }} />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtInt} width={32} allowDecimals={false} />
+          <Tooltip content={(p) => <Tip {...p} formatter={fmtInt} t={t} />} cursor={{ fill: t.cursor }} />
           <Bar dataKey="NSF Count" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => (
-              <Cell key={i} fill={d['NSF Count'] > 0 ? '#EF4444' : '#CBD5E1'} />
+              <Cell key={i} fill={d['NSF Count'] > 0 ? '#EF4444' : (t.isDark ? '#334155' : '#CBD5E1')} />
             ))}
-            <LabelList dataKey="NSF Count" position="top" formatter={fmtInt}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="NSF Count" position="top" formatter={fmtInt} style={labelStyle(t)} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -346,19 +304,16 @@ export function NSFCountChart({ statements }) {
 }
 
 export function DebtLoadDonutChart({ totals }) {
+  const t = useChartTheme()
   const lender   = Number(totals?.lender_debits ?? 0)
   const total    = Number(totals?.debits ?? 0)
   const organic  = Math.max(0, total - lender)
 
-  if (total === 0) return (
-    <div className="flex items-center justify-center h-52 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  if (total === 0) return empty('No statement data yet', 'h-52')
 
   const data = [
-    { name: 'Lender Debits',   value: lender,  color: '#7C3AED' },
-    { name: 'Organic Debits',  value: organic, color: '#CBD5E1' },
+    { name: 'Lender Debits',  value: lender,  color: '#7C3AED' },
+    { name: 'Organic Debits', value: organic, color: t.isDark ? '#334155' : '#CBD5E1' },
   ]
 
   const lenderPct = total > 0 ? ((lender / total) * 100).toFixed(1) : '0.0'
@@ -368,12 +323,9 @@ export function DebtLoadDonutChart({ totals }) {
       <div className="relative w-[180px] h-[180px]">
         <PieChart width={180} height={180}>
           <Pie
-            data={data}
-            cx={90} cy={90}
+            data={data} cx={90} cy={90}
             innerRadius={54} outerRadius={82}
-            dataKey="value"
-            startAngle={90} endAngle={-270}
-            strokeWidth={0}
+            dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0}
           >
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
@@ -382,7 +334,9 @@ export function DebtLoadDonutChart({ totals }) {
               if (!active || !payload?.length) return null
               const p = payload[0]
               return (
-                <div role="tooltip" className="bg-[#0F172A] text-white text-xs rounded-xl px-4 py-3 shadow-lg border border-white/10 font-sans">
+                <div role="tooltip"
+                     className="text-white text-xs rounded-xl px-4 py-3 shadow-lg font-sans border"
+                     style={{ background: t.tooltipBg, borderColor: t.tooltipBorder }}>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-sm" style={{ background: p.payload.color }} />
                     <span className="text-slate-400">{p.name}:</span>
@@ -393,7 +347,6 @@ export function DebtLoadDonutChart({ totals }) {
             }}
           />
         </PieChart>
-        {/* Center label pinned to exact SVG center point cx=90 cy=90 */}
         <div
           className="absolute flex flex-col items-center pointer-events-none"
           style={{ top: 90, left: 90, transform: 'translate(-50%, -50%)' }}
@@ -403,7 +356,6 @@ export function DebtLoadDonutChart({ totals }) {
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex gap-5 mt-3">
         {data.map((d) => (
           <div key={d.name} className="flex items-center gap-1.5">
@@ -418,15 +370,10 @@ export function DebtLoadDonutChart({ totals }) {
 }
 
 export function MoMRevenueChart({ statements }) {
+  const t = useChartTheme()
   const sorted = sortAsc(statements ?? [])
-  // Need at least 2 months to compute a change
-  if (sorted.length < 2) return (
-    <div className="flex items-center justify-center h-52 text-sm text-text-muted font-sans text-center px-4">
-      Need at least 2 statements to show month-over-month change
-    </div>
-  )
+  if (sorted.length < 2) return empty('Need at least 2 statements to show month-over-month change', 'h-52')
 
-  // Compute change on ascending order, then reverse so newest is leftmost
   const data = sorted.slice(1).map((s, i) => {
     const prev   = sorted[i]
     const change = prev.credits > 0
@@ -438,21 +385,18 @@ export function MoMRevenueChart({ statements }) {
     }
   }).reverse()
 
-  const YAxPct = <YAxis tickFormatter={fmtPct} {...sharedAxis} width={62} />
-
   return (
     <div aria-label={`Month-over-month revenue change across ${data.length} period(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barCategoryGap="36%">
-          {Grid}{XAx}{YAxPct}
-          <Tooltip content={<Tip formatter={fmtPct} />} cursor={{ fill: '#F8FAFC' }} />
-          <ReferenceLine y={0} stroke="#CBD5E1" strokeDasharray="4 4" />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtPct} width={62} />
+          <Tooltip content={(p) => <Tip {...p} formatter={fmtPct} t={t} />} cursor={{ fill: t.cursor }} />
+          <ReferenceLine y={0} stroke={t.ref} strokeDasharray="4 4" />
           <Bar dataKey="MoM Change" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => (
               <Cell key={i} fill={d['MoM Change'] >= 0 ? '#22C55E' : '#EF4444'} />
             ))}
-            <LabelList dataKey="MoM Change" position="top" formatter={fmtPct}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="MoM Change" position="top" formatter={fmtPct} style={labelStyle(t)} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -461,11 +405,8 @@ export function MoMRevenueChart({ statements }) {
 }
 
 export function BalanceObligationChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-52 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty('No statement data yet', 'h-52')
 
   const data = sortDesc(statements).map((s) => {
     const bal = s.avg_daily_balance ?? 0
@@ -476,35 +417,31 @@ export function BalanceObligationChart({ statements }) {
     }
   })
 
-  const YAxRatio = <YAxis tickFormatter={fmtRatio} {...sharedAxis} width={42} />
-
   return (
     <div aria-label={`Balance-to-obligation ratio across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-          {Grid}{XAx}{YAxRatio}
-          <Tooltip content={<Tip formatter={(v) => v == null ? 'N/A' : fmtRatio(v)} />} />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtRatio} width={42} />
+          <Tooltip content={(p) => <Tip {...p} formatter={(v) => v == null ? 'N/A' : fmtRatio(v)} t={t} />} />
           <ReferenceLine y={1} stroke="#EF4444" strokeDasharray="4 4"
             label={{ value: '1× min', position: 'insideTopRight', fontSize: 9, fill: '#EF4444' }} />
           <Line
-            type="monotone"
-            dataKey="Balance / Obligation"
-            stroke="#CBD5E1"
-            strokeWidth={2.5}
-            connectNulls={false}
+            type="monotone" dataKey="Balance / Obligation"
+            stroke={t.isDark ? '#475569' : '#CBD5E1'}
+            strokeWidth={2.5} connectNulls={false}
             dot={(props) => {
               const { cx, cy, payload } = props
               const v = payload['Balance / Obligation']
               if (v == null) return <g />
               const color = v >= 2 ? '#22C55E' : v >= 1 ? '#F59E0B' : '#EF4444'
-              return <circle cx={cx} cy={cy} r={5} fill={color} stroke="white" strokeWidth={2} />
+              return <circle cx={cx} cy={cy} r={5} fill={color} stroke={t.dotStroke} strokeWidth={2} />
             }}
             activeDot={(props) => {
               const { cx, cy, payload } = props
               const v = payload['Balance / Obligation']
               if (v == null) return <g />
               const color = v >= 2 ? '#22C55E' : v >= 1 ? '#F59E0B' : '#EF4444'
-              return <circle cx={cx} cy={cy} r={7} fill={color} stroke="white" strokeWidth={2.5} />
+              return <circle cx={cx} cy={cy} r={7} fill={color} stroke={t.dotStroke} strokeWidth={2.5} />
             }}
           />
         </LineChart>
@@ -514,11 +451,8 @@ export function BalanceObligationChart({ statements }) {
 }
 
 export function LenderInOutChart({ statements }) {
-  if (!statements?.length) return (
-    <div className="flex items-center justify-center h-52 text-sm text-text-muted font-sans">
-      No statement data yet
-    </div>
-  )
+  const t = useChartTheme()
+  if (!statements?.length) return empty('No statement data yet', 'h-52')
 
   const data = sortDesc(statements).map((s) => ({
     name:             s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
@@ -530,19 +464,14 @@ export function LenderInOutChart({ statements }) {
     <div aria-label={`Lender credits vs debits across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barGap={3} barCategoryGap="28%">
-          {Grid}{XAx}{YAx}
-          <Tooltip content={<Tip />} cursor={{ fill: '#F8FAFC' }} />
-          <Legend
-            wrapperStyle={{ fontSize: 11, color: '#64748B', paddingBottom: 4, fontFamily: 'Inter, sans-serif' }}
-            iconType="square" iconSize={8}
-          />
+          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <Tooltip content={(p) => <Tip {...p} t={t} />} cursor={{ fill: t.cursor }} />
+          <Legend wrapperStyle={legendStyle(t)} iconType="square" iconSize={8} />
           <Bar dataKey="Lender Credits" fill="#10B981" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="Lender Credits" position="top" formatter={fmtK}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="Lender Credits" position="top" formatter={fmtK} style={labelStyle(t)} />
           </Bar>
           <Bar dataKey="Lender Debits" fill="#7C3AED" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="Lender Debits" position="top" formatter={fmtK}
-                       style={{ fontSize: 9, fill: '#64748B', fontFamily: 'JetBrains Mono, monospace' }} />
+            <LabelList dataKey="Lender Debits" position="top" formatter={fmtK} style={labelStyle(t)} />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
@@ -551,6 +480,7 @@ export function LenderInOutChart({ statements }) {
 }
 
 export function ForecastSparkline({ statements, predicted, nextMonthLabel }) {
+  const t = useChartTheme()
   if (!statements?.length) return null
 
   const label = (s) =>
@@ -559,7 +489,6 @@ export function ForecastSparkline({ statements, predicted, nextMonthLabel }) {
   const sorted = [...statements].sort((a, b) =>
     (a.statement_date ?? a.filename ?? '').localeCompare(b.statement_date ?? b.filename ?? ''))
 
-  // Historical points; the last real point also seeds the Forecast series (junction)
   const data = sorted.map((s, i) => ({
     name:     label(s),
     Revenue:  Number(s.credits ?? 0),
@@ -572,7 +501,7 @@ export function ForecastSparkline({ statements, predicted, nextMonthLabel }) {
       <ComposedChart data={data} margin={{ top: 6, right: 6, left: 6, bottom: 0 }}>
         <defs>
           <linearGradient id="fcastGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#2563EB" stopOpacity={0.14} />
+            <stop offset="5%"  stopColor="#2563EB" stopOpacity={0.18} />
             <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
           </linearGradient>
         </defs>
@@ -588,7 +517,7 @@ export function ForecastSparkline({ statements, predicted, nextMonthLabel }) {
           dot={(props) => {
             const { cx, cy, index } = props
             if (index !== data.length - 1) return <g />
-            return <circle cx={cx} cy={cy} r={5} fill="white" stroke="#2563EB" strokeWidth={2.5} />
+            return <circle cx={cx} cy={cy} r={5} fill={t.dotStroke} stroke="#2563EB" strokeWidth={2.5} />
           }}
         />
       </ComposedChart>

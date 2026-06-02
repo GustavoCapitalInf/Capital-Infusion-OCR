@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import ThemeToggle from './components/ThemeToggle'
 import Dashboard   from './pages/Dashboard'
 import Statements  from './pages/Statements'
 import Lenders     from './pages/Lenders'
@@ -22,7 +23,9 @@ function TopBar() {
   const meta = PAGE_META[pathname] ?? {}
 
   return (
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-border flex items-center justify-between px-8 py-3">
+    <header className="sticky top-0 z-10 bg-white/80 dark:bg-[#0E1629]/80 backdrop-blur-sm
+                       border-b border-border flex items-center justify-between px-8 py-3
+                       transition-colors duration-200">
       <div>
         <p className="font-sans text-[13px] font-bold text-text-primary leading-none">{meta.label}</p>
         <p className="font-sans text-[11px] text-text-muted mt-0.5">{meta.sub}</p>
@@ -32,10 +35,11 @@ function TopBar() {
           value={clientId}
           onChange={(e) => setClientId(e.target.value)}
           placeholder="Client ID (optional)"
-          className="text-xs px-3 py-1.5 bg-gray-50 border border-border rounded-lg outline-none
-                     text-text-primary placeholder-text-muted focus:bg-white focus:border-blue-300
-                     focus:ring-1 focus:ring-blue-200 transition-all w-44"
+          className="text-xs px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-border rounded-lg outline-none
+                     text-text-primary placeholder-text-muted focus:bg-white dark:focus:bg-white/10
+                     focus:border-blue-300 focus:ring-1 focus:ring-blue-200 transition-all w-44"
         />
+        <ThemeToggle />
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
           <span className="text-[10px] font-bold text-white">CI</span>
         </div>

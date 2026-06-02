@@ -40,7 +40,9 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
 
   const SortIcon = ({ colKey }) => {
     if (sort?.key !== colKey) return <ChevronsUpDown size={10} className="opacity-30" />
-    return sort.dir === 'asc' ? <ChevronUp size={10} className="text-blue-600" /> : <ChevronDown size={10} className="text-blue-600" />
+    return sort.dir === 'asc'
+      ? <ChevronUp size={10} className="text-blue-600 dark:text-blue-300" />
+      : <ChevronDown size={10} className="text-blue-600 dark:text-blue-300" />
   }
 
   return (
@@ -52,7 +54,7 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
           {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-text-muted bg-gray-100 px-2.5 py-1 rounded-full font-medium">
+          <span className="text-xs text-text-muted bg-gray-100 dark:bg-white/10 px-2.5 py-1 rounded-full font-medium">
             {sorted.length.toLocaleString()} rows
           </span>
           <div className="relative">
@@ -61,8 +63,8 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
               value={query}
               onChange={(e) => { setQuery(e.target.value); setPage(1) }}
               placeholder="Search…"
-              className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-border rounded-lg outline-none
-                         text-text-primary placeholder-text-muted focus:bg-white focus:border-blue-300
+              className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-white/5 border border-border rounded-lg outline-none
+                         text-text-primary placeholder-text-muted focus:bg-white dark:focus:bg-white/10 focus:border-blue-300
                          focus:ring-1 focus:ring-blue-200 transition-all w-48"
             />
           </div>
@@ -78,7 +80,7 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
                 <th
                   key={col.key}
                   onClick={() => toggleSort(col.key)}
-                  className="px-5 py-3 text-left bg-gray-50/80 cursor-pointer select-none group"
+                  className="px-5 py-3 text-left bg-gray-50/80 dark:bg-white/[0.03] cursor-pointer select-none group"
                 >
                   <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted group-hover:text-text-secondary transition-colors whitespace-nowrap">
                     {col.label}
@@ -100,8 +102,8 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
               <tr
                 key={i}
                 className={clsx(
-                  'transition-colors hover:bg-gray-50/80',
-                  i % 2 === 1 && 'bg-gray-50/30'
+                  'transition-colors hover:bg-gray-50/80 dark:hover:bg-white/[0.04]',
+                  i % 2 === 1 && 'bg-gray-50/30 dark:bg-white/[0.02]'
                 )}
               >
                 {columns.map((col) => (
@@ -119,29 +121,30 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-5 py-3 border-t border-border-light bg-gray-50/50">
+        <div className="flex items-center justify-between px-5 py-3 border-t border-border-light bg-gray-50/50 dark:bg-white/[0.02]">
           <p className="text-xs text-text-muted">
             Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
           </p>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(1)} disabled={page === 1}
-              className="px-2 py-1 text-xs rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 transition-colors"
+              className="px-2 py-1 text-xs text-text-secondary rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >«</button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-              className="px-3 py-1 text-xs rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 transition-colors"
+              className="px-3 py-1 text-xs text-text-secondary rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >Prev</button>
-            <span className="px-3 py-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="px-3 py-1 text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200
+                              dark:text-blue-300 dark:bg-blue-500/15 dark:border-blue-500/30 rounded-lg">
               {page} / {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              className="px-3 py-1 text-xs rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 transition-colors"
+              className="px-3 py-1 text-xs text-text-secondary rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >Next</button>
             <button
               onClick={() => setPage(totalPages)} disabled={page === totalPages}
-              className="px-2 py-1 text-xs rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 transition-colors"
+              className="px-2 py-1 text-xs text-text-secondary rounded-lg border border-border disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >»</button>
           </div>
         </div>

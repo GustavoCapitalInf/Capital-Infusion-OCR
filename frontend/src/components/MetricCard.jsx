@@ -3,12 +3,12 @@ import clsx from 'clsx'
 
 // Accent bar + icon bg mapping (design system: fintech palette)
 const themes = {
-  blue:   { bar: 'bg-primary',  icon: 'bg-blue-50  text-primary',    val: 'text-text-primary' },
-  green:  { bar: 'bg-accent',   icon: 'bg-green-light text-green-600', val: 'text-green-600' },
-  red:    { bar: 'bg-danger',   icon: 'bg-red-light  text-danger',    val: 'text-danger' },
-  amber:  { bar: 'bg-warning',  icon: 'bg-amber-light text-warning',  val: 'text-warning' },
-  purple: { bar: 'bg-purple',   icon: 'bg-purple-light text-purple',  val: 'text-text-primary' },
-  none:   { bar: 'bg-border',   icon: 'bg-gray-100  text-gray-500',   val: 'text-text-primary' },
+  blue:   { bar: 'bg-primary',  icon: 'bg-blue-50     dark:bg-blue-500/15   text-primary    dark:text-blue-300',  val: 'text-text-primary' },
+  green:  { bar: 'bg-accent',   icon: 'bg-green-light dark:bg-green-500/15  text-green-600  dark:text-green-300', val: 'text-green-600 dark:text-green-400' },
+  red:    { bar: 'bg-danger',   icon: 'bg-red-light   dark:bg-red-500/15    text-danger     dark:text-red-300',   val: 'text-danger dark:text-red-400' },
+  amber:  { bar: 'bg-warning',  icon: 'bg-amber-light dark:bg-amber-500/15  text-warning    dark:text-amber-300', val: 'text-warning dark:text-amber-400' },
+  purple: { bar: 'bg-purple',   icon: 'bg-purple-light dark:bg-purple-500/15 text-purple   dark:text-purple-300', val: 'text-text-primary' },
+  none:   { bar: 'bg-border',   icon: 'bg-gray-100    dark:bg-white/10      text-gray-500   dark:text-slate-300', val: 'text-text-primary' },
 }
 
 export default function MetricCard({ label, value, sub, icon: Icon, accent = 'none', badge }) {
@@ -18,7 +18,7 @@ export default function MetricCard({ label, value, sub, icon: Icon, accent = 'no
     <div className={clsx(
       'relative bg-card border border-border rounded-2xl overflow-hidden shadow-xs',
       'transition-all duration-base cursor-default',
-      'hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300',
+      'hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-white/15',
       'group'
     )}>
       {/* Coloured top accent bar */}

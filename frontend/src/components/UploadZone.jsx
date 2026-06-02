@@ -14,7 +14,12 @@ const ACCEPT = {
 }
 
 const FILE_ICONS = { pdf: FileText, csv: File, xlsx: File, xls: File }
-const FILE_COLORS = { pdf: 'text-red-500 bg-red-50', csv: 'text-green bg-green-light', xlsx: 'text-blue-600 bg-blue-50', default: 'text-gray-500 bg-gray-100' }
+const FILE_COLORS = {
+  pdf:     'text-red-500   bg-red-50   dark:bg-red-500/15   dark:text-red-300',
+  csv:     'text-green     bg-green-light dark:bg-green-500/15 dark:text-green-300',
+  xlsx:    'text-blue-600  bg-blue-50  dark:bg-blue-500/15  dark:text-blue-300',
+  default: 'text-gray-500  bg-gray-100 dark:bg-white/10     dark:text-slate-300',
+}
 
 function FileCard({ file, onRemove }) {
   const ext = file.name.split('.').pop().toLowerCase()
@@ -25,7 +30,7 @@ function FileCard({ file, onRemove }) {
     : `${(file.size / 1024 / 1024).toFixed(1)} MB`
 
   return (
-    <div className="flex items-center gap-3 bg-white border border-border rounded-xl px-4 py-3 shadow-xs group animate-fade-in">
+    <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-xs group animate-fade-in">
       <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', color)}>
         <Icon size={14} strokeWidth={2} />
       </div>
@@ -35,7 +40,9 @@ function FileCard({ file, onRemove }) {
       </div>
       <button
         onClick={onRemove}
-        className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red flex items-center justify-center transition-all"
+        className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-gray-100 dark:bg-white/10
+                   hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red dark:hover:text-red-300
+                   flex items-center justify-center transition-all"
       >
         <X size={12} />
       </button>
@@ -95,8 +102,8 @@ export default function UploadZone() {
         className={clsx(
           'relative border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-200 overflow-hidden',
           isDragActive
-            ? 'border-blue-500 bg-blue-50 scale-[1.01]'
-            : 'border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50/50'
+            ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 scale-[1.01]'
+            : 'border-blue-200 dark:border-blue-500/30 bg-card hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-500/5'
         )}
       >
         <input {...getInputProps()} />
@@ -107,15 +114,17 @@ export default function UploadZone() {
         <div className="relative px-8 py-10 text-center">
           <div className={clsx(
             'w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center transition-all duration-200',
-            isDragActive ? 'bg-blue-100 scale-110' : 'bg-blue-50'
+            isDragActive
+              ? 'bg-blue-100 dark:bg-blue-500/20 scale-110'
+              : 'bg-blue-50  dark:bg-blue-500/10'
           )}>
-            <Upload size={24} className={isDragActive ? 'text-blue-600' : 'text-blue-400'} strokeWidth={1.5} />
+            <Upload size={24} className={isDragActive ? 'text-blue-600 dark:text-blue-300' : 'text-blue-400 dark:text-blue-400'} strokeWidth={1.5} />
           </div>
           <p className="text-sm font-semibold text-text-primary mb-1">
             {isDragActive ? 'Release to upload' : 'Drop bank statements here'}
           </p>
           <p className="text-xs text-text-muted">
-            or <span className="text-blue-600 font-medium">browse files</span> · PDF, PNG, JPG, CSV, XLSX
+            or <span className="text-blue-600 dark:text-blue-300 font-medium">browse files</span> · PDF, PNG, JPG, CSV, XLSX
           </p>
         </div>
       </div>
@@ -126,9 +135,9 @@ export default function UploadZone() {
           {files.map((f, i) => <FileCard key={`${f.name}-${i}`} file={f} onRemove={() => remove(i)} />)}
 
           {uploadError && (
-            <div className="flex items-start gap-3 bg-red-light border border-red-border rounded-xl px-4 py-3 animate-fade-in">
-              <AlertCircle size={16} className="text-red flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red font-medium">{uploadError}</p>
+            <div className="flex items-start gap-3 bg-red-light dark:bg-red-500/10 border border-red-border dark:border-red-500/30 rounded-xl px-4 py-3 animate-fade-in">
+              <AlertCircle size={16} className="text-red dark:text-red-300 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red dark:text-red-300 font-medium">{uploadError}</p>
             </div>
           )}
 
@@ -145,9 +154,9 @@ export default function UploadZone() {
       )}
 
       {success && !files.length && (
-        <div className="flex items-center gap-3 bg-green-light border border-green-border rounded-xl px-4 py-3 animate-fade-in">
-          <CheckCircle2 size={16} className="text-green flex-shrink-0" />
-          <p className="text-sm text-green-700 font-medium">Analysis complete — results loaded below</p>
+        <div className="flex items-center gap-3 bg-green-light dark:bg-green-500/10 border border-green-border dark:border-green-500/30 rounded-xl px-4 py-3 animate-fade-in">
+          <CheckCircle2 size={16} className="text-green dark:text-green-300 flex-shrink-0" />
+          <p className="text-sm text-green-700 dark:text-green-300 font-medium">Analysis complete — results loaded below</p>
         </div>
       )}
 
