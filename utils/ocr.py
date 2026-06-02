@@ -11,6 +11,7 @@ import numpy as np
 import cv2
 import pdfplumber
 
+from langdetect import detect
 from PIL import Image
 from pdf2image import convert_from_bytes
 
@@ -31,7 +32,7 @@ POPPLER_PATH = r"C:\Users\MohammedBharoocha\Downloads\poppler\poppler-26.02.0\Li
 @st.cache_resource
 def _load_easyocr_reader():
     import easyocr
-    return easyocr.Reader(["en", "fr", "es"], gpu=False)
+    return easyocr.Reader(["en", "fr", "es", "pt"], gpu=False)
 
 
 # ---------------------------------------------------------------------------
@@ -40,18 +41,47 @@ def _load_easyocr_reader():
 
 def preprocess_image(image) -> np.ndarray:
     """
-    Convert PIL image → denoised, adaptive-thresholded grayscale numpy array
-    for best OCR accuracy on scanned bank statements.
+    Enhanced OCR preprocessing for narrow / scanned bank statements.
+    Improves ACH text detection without affecting parser logic.
     """
+
     arr = np.array(image)
+
+    # Convert to grayscale
     gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY) if arr.ndim == 3 else arr
+
+    # Upscale small / narrow statements for OCR readability
+    gray = cv2.resize(
+        gray,
+        None,
+        fx=2.5,
+        fy=2.5,
+        interpolation=cv2.INTER_CUBIC,
+    )
+
+    # Denoise scan artifacts
     gray = cv2.fastNlMeansDenoising(gray)
-    return cv2.adaptiveThreshold(
-        gray, 255,
+
+    # Sharpen text slightly
+    kernel = np.array([
+        [-1, -1, -1],
+        [-1,  9, -1],
+        [-1, -1, -1]
+    ])
+
+    gray = cv2.filter2D(gray, -1, kernel)
+
+    # Adaptive threshold for faint ACH text
+    thresh = cv2.adaptiveThreshold(
+        gray,
+        255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY,
-        31, 2,
+        31,
+        11,
     )
+
+    return thresh
 
 
 # ---------------------------------------------------------------------------

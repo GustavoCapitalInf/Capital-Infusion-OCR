@@ -2,13 +2,6 @@
 utils/lender_detection.py
 -------------------------
 MCA / lender keyword dictionary and detection functions.
-Detects lender debits (loan repayments) and lender credits (fundings).
-
-Credit detection uses a 3-pass strategy:
-  Pass 1 — Credit column (standard banks with section headers)
-  Pass 2 — Debit column + FUNDING_DEPOSIT_PATTERNS (Wells Fargo sectionless)
-  Pass 3 — Debit column + heuristic: lender name at description start
-            with no debit-only words → almost certainly an inbound advance
 """
 
 from __future__ import annotations
@@ -20,8 +13,21 @@ from utils.cleaning import clean_text, clean_money, keyword_matches
 
 
 # ---------------------------------------------------------------------------
-# Patterns indicating an INBOUND funding deposit
+# Known credit-only lender name fragments
+# If ANY of these appear in a description, it is ALWAYS an inbound credit
+# regardless of which column it landed in.
 # ---------------------------------------------------------------------------
+
+ALWAYS_CREDIT_SUBSTRINGS: list[str] = [
+    "EXPANSION CAPITA",
+    "EXPANSION CAPITAL FUND",
+    "RETRO ADVANCE INC",
+    "J & A MARKETING",
+    "J&A MARKETING",
+    "CDC SMALL BUS",
+    "BLACKBULL ENTERP",
+    "00SAPP010",
+]
 
 FUNDING_DEPOSIT_PATTERNS: list[str] = [
     r"ACH\s*PAYMEN",
@@ -37,16 +43,16 @@ FUNDING_DEPOSIT_PATTERNS: list[str] = [
     r"WIRE\s*IN",
     r"INCOMING\s*WIRE",
     r"WIRE\s*TRANSFER\s*INCOMING",
-    r"PY\d{2}/\d{2}/\d{2}",        # J&A Marketing: PY04/23/26
-    r"00SAPP010",                   # J&A Marketing batch ID
-    r"CAPITA\s+FUNDING",            # Expansion Capita Funding
-    r"CAPITAL\s+FUNDING",           # Expansion Capital Funding
-    r"FUNDING\s+\d{5,}",           # Lender + numeric batch: "Funding 5769267"
-    r"ADVANCE\s+INC",              # Retro Advance Inc
-    r"SALE\s+\d{6}",               # CDC: "Sale 260301"
+    r"PY\d{2}/\d{2}/\d{2}",
+    r"00SAPP010",
+    r"CAPITA\s+FUNDING",
+    r"CAPITAL\s+FUNDING",
+    r"FUNDING\s+\d{5,}",
+    r"ADVANCE\s+INC",
+    r"SALE\s+\d{6}",
+    r"EXPANSION\s+CAPITA",
 ]
 
-# Patterns that unambiguously indicate an OUTGOING payment (never a credit)
 DEBIT_ONLY_PATTERNS: list[str] = [
     r"\bBILLPAY\b",
     r"\bBILL\s*PAY\b",
@@ -56,8 +62,45 @@ DEBIT_ONLY_PATTERNS: list[str] = [
     r"CCD\s+DEBIT",
     r"ACH\s+DEBIT",
     r"PURCHASE\s+AUTH",
+    r"\bCHECKCARD\b",     # BofA debit card transaction — always a debit
+    r"SHOPIFY\s+CAPITAL\s+DES",  # Shopify Capital repayment ACH
+    r"SHOPIFY\s+CREDIT\s+DES",   # Shopify Credit repayment ACH (misleading name — it's a debit)
+    r"\bDES:",            # ACH debit descriptor field (OnDeck, Forward Financing)
+    r"\bINDN:",           # ACH individual name field
+    r"\bID:RPP",          # Forward Financing ACH ID
+    r"\bID:XXXXXXXXX",    # OnDeck masked ACH ID
+    r"\bCO\s+ID:",       # ACH company ID field
+    r"\s+CCD$",           # CCD at end of line = ACH debit entry
 ]
 
+
+def _is_always_credit(description: str) -> bool:
+    """Check if description contains a known credit-only lender fragment."""
+    upper = description.upper()
+    return any(s in upper for s in ALWAYS_CREDIT_SUBSTRINGS)
+
+
+# Descriptions containing these are returned/unpaid items — skip entirely from lender detection
+SKIP_LENDER_SUBSTRINGS: list[str] = [
+    "REFERENCE #",        # Wells Fargo "Items returned unpaid" — bounced, not real transactions
+]
+
+def _should_skip_lender(description: str) -> bool:
+    upper = description.upper()
+    return any(s in upper for s in SKIP_LENDER_SUBSTRINGS)
+
+
+ALWAYS_DEBIT_SUBSTRINGS: list[str] = [
+    "SHOPIFY CAPITAL DES",
+    "SHOPIFY CREDIT DES",
+    "CHECKCARD",
+    "ORIG CO NAME:",      # Chase ACH debit format — always outgoing repayment
+    "REFERENCE #",        # Wells Fargo returned/unpaid item — attempted debit that bounced
+]
+
+def _is_always_debit(description: str) -> bool:
+    upper = description.upper()
+    return any(s in upper for s in ALWAYS_DEBIT_SUBSTRINGS)
 
 def _is_funding_deposit(description: str) -> bool:
     upper = description.upper()
@@ -70,30 +113,13 @@ def _is_debit_only(description: str) -> bool:
 
 
 def _looks_like_funding(description: str, matched_keyword: str) -> bool:
-    """
-    Heuristic for sectionless banks (Wells Fargo etc.):
-    If the description STARTS with the lender keyword and contains a
-    numeric batch ID or date — and has no debit-only words — it's almost
-    certainly an inbound advance deposit.
-
-    True  → "Expansion Capita Funding 5769267 Lady Luck Print CO"
-    True  → "J & A Marketing PY04/23/26 00Sapp010 Lady Luck Print CO."
-    False → "CCD DEBIT, FORWARD FINANCIN FF"
-    False → "Lentegrity BILLPAY xxxxx5464"
-    """
     if _is_debit_only(description):
         return False
-
     upper = description.upper()
     kw_upper = clean_text(matched_keyword)
-
-    # Keyword appears at the very start of the description
     keyword_at_start = upper.lstrip().startswith(kw_upper)
-
-    # Description contains a batch ID (5+ digits) or date
     has_batch_id = bool(re.search(r"\d{5,}", description))
-    has_date     = bool(re.search(r"\d{2}/\d{2}/\d{2,4}", description))
-
+    has_date = bool(re.search(r"\d{2}/\d{2}/\d{2,4}", description))
     return keyword_at_start and (has_batch_id or has_date)
 
 
@@ -102,19 +128,14 @@ def _looks_like_funding(description: str, matched_keyword: str) -> bool:
 # ---------------------------------------------------------------------------
 
 LENDER_KEYWORDS: dict[str, list[str]] = {
-    # A
     "ACH CAPITAL": ["ACH CAPITAL"],
     "AFFIRM": ["AFFIRM", "AFFIRM PAY", "AFFIRM COM", "AFFIRM COM PAYME"],
-
-    # B
     "BALBOA CAPITAL": ["BALBOA", "BALBOA CAPITAL"],
     "BITTY ADVANCE": ["BITTY", "BITTY ADVANCE", "MCA SAVINGS"],
     "BIZFUND": ["BIZFUND", "BIZFUND ACHDEBIT"],
     "BLUEVINE": ["BLUEVINE"],
     "BLACKBULL": ["BLACKBULL", "BLACKBULL ENTERP", "BLACKBULL WCTA"],
     "BREAKOUT CAPITAL": ["BREAKOUT", "BREAKOUT CAPITAL"],
-
-    # C
     "CAN CAPITAL": ["CAN CAPITAL", "CANCAP", "CANACAP"],
     "CAPITAL INFUSION": ["CAP INFUSION", "CAPITAL INFUSION"],
     "CDC SMALL BUSINESS": ["CDC SMALL BUS", "CDC SMALL BUSINESS"],
@@ -122,13 +143,9 @@ LENDER_KEYWORDS: dict[str, list[str]] = {
     "CHANNEL PARTNERS": ["CHANNEL PARTNERS", "LENDING SERVICES"],
     "CLEARCO": ["CLEARCO"],
     "CREDIBLY": ["CREDIBLY", "RETAIL CAPITAL"],
-
-    # D
     "DAILY FUNDING": ["DAILY FUNDING", "DAILYFUNDING"],
     "DE LAGE LANDEN": ["DE LAGE LANDEN", "DELAGELANDEN", "DIRECT DEB DELAGELANDEN"],
     "DELTA": ["DELTA", "FUNDRY"],
-
-    # E
     "EBF HOLDINGS": ["EBF", "EBF DEBIT", "EBF HOLDINGS", "HOLDINGS EBF"],
     "ELEVATED FUNDING": ["ELEVATED", "ELEVATED FUNDING"],
     "EMINENT FUNDING": ["EMINENT", "3329001101", "EMINENT FUNDING"],
@@ -139,10 +156,8 @@ LENDER_KEYWORDS: dict[str, list[str]] = {
         "EXPANSION CAPITA FUNDING", "EXPANSION CAPITAL FUNDING",
         "Expansion Capita Funding 5769267", "ECG LLC",
     ],
-
-    # F
     "FORA FINANCIAL": ["FORA", "FORA FINANCIAL"],
-    "FORWARD FINANCING": ["FORWARD FINANCIN", "FORWARD FINANCING"],
+    "FORWARD FINANCING": ["FORWARD FINANCIN", "FORWARD FINANCING", "FORWARDFINANCIN", "FORWARD FINANCINFF"],
     "FUNDBOX": ["FUNDBOX"],
     "FUNDATION": ["FUNDATION"],
     "FUNDIFI": ["FUNDIFI", "FUNDFI"],
@@ -152,82 +167,45 @@ LENDER_KEYWORDS: dict[str, list[str]] = {
         "FUNDOWRK", "FUNDOWRKS", "FUND WRKS", "FUNDWK",
         "ACH FUNDWORKS", "FUNDWORKS LLC", "THE FUNDWORKS LLC",
     ],
-
-    # G
-    "GLOBAL MERCHANT": [
-        "EDI PYMNTS", "GBL MERCHANT", "GLOBAL MER",
-        "GLOBAL MER EDI", "GLOBAL MERCHANT", "WALL",
-    ],
+    "GLOBAL MERCHANT": ["EDI PYMNTS", "GBL MERCHANT", "GLOBAL MER", "GLOBAL MER EDI", "GLOBAL MERCHANT", "WALL"],
     "GREENBOX CAPITAL": ["GREENBOX", "GREENBOX CAPITAL"],
     "GFE": ["GFE", "UFCE", "UNITED FIRST", "GLOBAL FUNDING"],
-
-    # H
     "HEADWAY CAPITAL": ["HEADWAY", "HEADWAY CAPITAL"],
     "HOUSE": ["HOUSE", "MRBIZCAP"],
-
-    # I
     "IDEA FINANCIAL": ["IDEAFINANCIAL", "IDEA FINANCIAL"],
     "IOU FINANCIAL": ["IOU", "IOU FINANCIAL"],
     "IRUKA": ["IRUKA", "J&G", "ICG"],
-
-    # J
     "J & A MARKETING": ["J & A MARKETING", "J A MARKETING", "J&A MARKETING"],
     "JRW CAPITAL": ["JRW CAPITAL", "JR CAPITAL LLC"],
-
-    # K
     "KABBAGE": ["KABBAGE"],
     "KAPITUS": ["KAPITUS", "STRATEGIC FUNDING"],
-
-    # L
     "LENDINI": ["LENDINI", "FUNDING METRICS"],
     "LENTEGRITY": ["LENTEGRITY", "LENTEGRITY BILLPAY"],
     "LG FUNDING": ["LG FUNDING", "LG FUNDING LLC"],
     "LIBERTAS FUNDING": ["LIBERTAS", "LIBERTAS FUNDING"],
     "LOANME": ["LOAN ME", "LOANME"],
-
-    # M
     "MUDFLAP": ["MUDFLAP"],
-
-    # N
     "NATIONAL FUNDING": ["NATIONAL FUNDING"],
     "NMEF": ["NMEF", "NMEF 2023 A"],
-
-    # O
     "ONDECK": ["ON DECK", "ONDECK", "ENOVA"],
-
-    # P
     "PAR FUNDING": ["PAR", "PAR FUNDING"],
     "PAYABILITY": ["PAYABILITY"],
     "PAYPAL WORKING CAPITAL": ["PAYPAL CAPITAL", "PAYPAL WORKING CAPITAL"],
-
-    # Q
     "QUARTERSPOT": ["QUARTER SPOT", "QUARTERSPOT"],
-
-    # R
     "RAPID FINANCE": ["RAPIDFINANCE", "RAPID FINANCE", "RAPID", "SBFS"],
     "RELIANT FUNDING": ["RELIANT", "RELIANT FUNDING"],
-    "RETRO ADVANCE": ["RETRO ADVANCE", "RETROADVANCE"],
-
-    # S
+    "RETRO ADVANCE": ["RETRO ADVANCE", "RETROADVANCE", "RETROADVANCEINC", "RETRO ADVANCE INC"],
     "SHEAVES": ["SHEAVES", "3201961 ONTARRIO INC", "11302078 CANADA LTD"],
     "SMARTPAY": ["SMARTPAY", "SMARTPAY SOL"],
     "SPECIALTY": ["SPECIALTY", "ASCENTRA VENTURE"],
+    "SHOPIFY CAPITAL": ["SHOPIFY CAPITAL", "SHOPIFY CREDIT"],
     "SQUARE CAPITAL": ["SQ CAPITAL", "SQUARE CAPITAL"],
-
-    # T
     "TORRO": ["TORRO"],
-
-    # V
     "VELOCITY CAPITAL": ["VELOCITY", "VELOCITY CAPITAL"],
-
-    # Y
     "YELLOWSTONE CAPITAL": ["YELLOWSTONE", "YELLOWSTONE CAPITAL"],
-
-    # Numeric / Other
     "2M7": ["2M7", "URAL LINK"],
 }
 
-# Keywords indicating a payment processor — NOT a lender
 FALSE_LENDER_KEYWORDS: list[str] = [
     "SQ", "SQUARE", "PAYPAL", "PAY PAL", "STRIPE", "SNAP",
     "VENMO", "ZELLE", "CASHAPP", "INTUIT", "SHOPIFY",
@@ -236,16 +214,20 @@ FALSE_LENDER_KEYWORDS: list[str] = [
 ]
 
 
-# ---------------------------------------------------------------------------
-# Core detection helpers
-# ---------------------------------------------------------------------------
-
 def detect_company(description: str, keyword_dict: dict) -> tuple[str, str]:
     clean_desc = clean_text(description)
-    for lender_name, keywords in keyword_dict.items():
-        for kw in keywords:
-            if keyword_matches(clean_desc, clean_text(kw)):
-                return lender_name, clean_text(kw)
+    # Also try stripping common ACH prefixes (squished OCR: "CCDDEBIT,FORWARDFINANCIN")
+    stripped = re.sub(r"^(CCD\s*DEBIT[,\s]*|ACH\s*DEBIT[,\s]*|ACH\s*PMT[,\s]*|WIRE\s*TRANSFER\s*INCOMING[,\s]*|TRANSFER\s*INCOMING[,\s]*)", "", clean_desc, flags=re.IGNORECASE).strip()
+
+    for desc_variant in [clean_desc, stripped]:
+        for lender_name, keywords in keyword_dict.items():
+            for kw in keywords:
+                ck = clean_text(kw)
+                if keyword_matches(desc_variant, ck):
+                    return lender_name, ck
+                # Handle squished format: "RETROADVANCE9547435581..." starts with keyword
+                if desc_variant.startswith(ck) or desc_variant.startswith(ck.replace(" ", "")):
+                    return lender_name, ck
     return "", ""
 
 
@@ -257,37 +239,41 @@ def is_false_lender(description: str) -> tuple[bool, str]:
     return False, ""
 
 
-# ---------------------------------------------------------------------------
-# Lender debit extraction
-# ---------------------------------------------------------------------------
-
 def get_lender_debits(
     df: pd.DataFrame,
     total_revenue: float,
 ) -> tuple[pd.DataFrame, float, float]:
-    """
-    Scan the Debit column for MCA repayments.
-    Skips rows that look like inbound funding deposits.
-    """
     rows: list[dict] = []
-
     for _, row in df.iterrows():
         desc = str(row.get("Description", "")).strip()
         if not desc:
             desc = " ".join(str(v) for v in row.values if pd.notna(v))
-
+        # Skip garbage rows (very long descriptions = OCR boilerplate garbage)
+        if len(desc) > 400:
+            continue
         lender, kw = detect_company(desc, LENDER_KEYWORDS)
         if not lender:
             continue
-
-        # Skip inbound funding
-        if _is_funding_deposit(desc) or _looks_like_funding(desc, kw):
-            continue
-
+        # _is_always_debit takes priority — even known credit lenders can have returned items
+        # Exception: REFERENCE # + ACH ITEMS/ACH DEBIT = lender tried to collect and bounced
+        # = money never left, skip from debits (not Blackbull "SALE" which is a customer payment)
+        if _is_always_debit(desc):
+            upper_desc = desc.upper()
+            is_bounced_collection = (
+                "REFERENCE #" in upper_desc
+                and ("ACH ITEMS" in upper_desc or "ACH DEBIT" in upper_desc)
+            )
+            if is_bounced_collection:
+                continue  # bounced lender collection, money never left
+        else:
+            if _is_always_credit(desc) or _is_funding_deposit(desc) or _looks_like_funding(desc, kw):
+                continue
         debit = clean_money(row.get("Debit", 0))
+        # For always-debit rows, also check Credit column (misclassified by parser)
+        if debit <= 0 and _is_always_debit(desc):
+            debit = clean_money(row.get("Credit", 0))
         if debit <= 0:
             continue
-
         rows.append({
             "Date":                str(row.get("Date", "")),
             "Description":         desc,
@@ -296,55 +282,48 @@ def get_lender_debits(
             "Matched Keyword":     kw,
             "Lender Debit Amount": round(debit, 2),
         })
-
     result = pd.DataFrame(rows)
-    total  = result["Lender Debit Amount"].sum() if not result.empty else 0.0
-    rate   = (total / total_revenue * 100) if total_revenue > 0 else 0.0
+    total = result["Lender Debit Amount"].sum() if not result.empty else 0.0
+    rate = (total / total_revenue * 100) if total_revenue > 0 else 0.0
     return result, total, rate
 
 
-# ---------------------------------------------------------------------------
-# Lender credit extraction
-# ---------------------------------------------------------------------------
-
 def get_lender_credits(df: pd.DataFrame) -> tuple[pd.DataFrame, float]:
-    """
-    Scan for MCA / loan funding deposits using a 3-pass strategy.
-
-    Pass 1 — Credit > 0  (standard banks with section headers)
-    Pass 2 — Debit > 0 + FUNDING_DEPOSIT_PATTERNS match
-              (sectionless banks: ACH PAYMEN, ACH ITEMS, etc.)
-    Pass 3 — Debit > 0 + heuristic: lender keyword at description start
-              + numeric batch ID or date + no debit-only words
-              (catches "Expansion Capita Funding 5769267 …")
-    """
     rows: list[dict] = []
     seen: set[tuple] = set()
-
     for _, row in df.iterrows():
         desc = str(row.get("Description", "")).strip()
         if not desc:
             desc = " ".join(str(v) for v in row.values if pd.notna(v))
-
         lender, kw = detect_company(desc, LENDER_KEYWORDS)
         if not lender:
             continue
-
+        # Skip garbage rows and returned/unpaid items
+        if len(desc) > 400 or _should_skip_lender(desc):
+            continue
+        # Skip known outgoing repayments regardless of which column they landed in
+        if _is_always_debit(desc):
+            continue
         credit = clean_money(row.get("Credit", 0))
-        debit  = clean_money(row.get("Debit",  0))
+        debit  = clean_money(row.get("Debit", 0))
+        # Use whichever column has a value
+        raw_amount = credit if credit > 0 else debit
 
-        # Pass 1 — correctly in Credit column
-        if credit > 0:
+        # Pass 0 — ALWAYS_CREDIT description: use whichever column has value
+        if _is_always_credit(desc) and raw_amount > 0:
+            amount = raw_amount
+        # Pass 1 — Credit column
+        elif credit > 0:
             amount = credit
-
-        # Pass 2 — funding pattern in description
+        # Pass 2 — known credit substrings with debit column
+        elif debit > 0 and _is_always_credit(desc):
+            amount = debit
+        # Pass 3 — funding deposit patterns
         elif debit > 0 and _is_funding_deposit(desc):
             amount = debit
-
-        # Pass 3 — heuristic: lender name at start + batch ID, no debit words
+        # Pass 4 — heuristic
         elif debit > 0 and _looks_like_funding(desc, kw):
             amount = debit
-
         else:
             continue
 
@@ -352,7 +331,6 @@ def get_lender_credits(df: pd.DataFrame) -> tuple[pd.DataFrame, float]:
         if key in seen:
             continue
         seen.add(key)
-
         rows.append({
             "Date":                 str(row.get("Date", "")),
             "Description":          desc,
@@ -360,7 +338,6 @@ def get_lender_credits(df: pd.DataFrame) -> tuple[pd.DataFrame, float]:
             "Matched Keyword":      kw,
             "Lender Credit Amount": round(amount, 2),
         })
-
     result = pd.DataFrame(rows)
-    total  = result["Lender Credit Amount"].sum() if not result.empty else 0.0
+    total = result["Lender Credit Amount"].sum() if not result.empty else 0.0
     return result, total

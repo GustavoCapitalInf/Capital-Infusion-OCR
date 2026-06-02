@@ -47,6 +47,8 @@ CREDIT_SECTION_WORDS = [
 
 DEBIT_SECTION_WORDS = [
     "ELECTRONIC WITHDRAWALS",
+    "ELECTRONIC PAYMENTS",
+    "PAYMENTS",
     "WITHDRAWALS AND OTHER DEBITS",
     "ATM & DEBIT CARD WITHDRAWALS",
     "ATM AND DEBIT CARD WITHDRAWALS",
@@ -56,8 +58,11 @@ DEBIT_SECTION_WORDS = [
     "OTHER WITHDRAWALS",
     "SERVICE FEES",
     "SERVICE CHARGES",
+    "CCD DEBIT",
+    "ACH DEBIT",
     "DEBIT",
     "WITHDRAWAL",
+    "PAYMENT",
 ]
 
 SKIP_LINE_KEYWORDS = [
@@ -129,7 +134,7 @@ _DATE_START = re.compile(
 )
 
 _MONEY_RE = re.compile(
-    r"-?\$?\d{1,3}(?:,\d{3})*\.\d{2}|-?\$?\d+\.\d{2}|-?\d[\d\s]*,\d{2}",
+    r"-?\$?\d{1,3}(?:,\d{3})*\.\d{2}|-?\$?\d+\.\d{2}",
     re.IGNORECASE,
 )
 
@@ -167,10 +172,11 @@ def parse_universal_bank_rows(text: str) -> pd.DataFrame:
             continue
 
         # Section classification
-        if any(w in upper for w in CREDIT_SECTION_WORDS):
-            current_section = "Credit"
         if any(w in upper for w in DEBIT_SECTION_WORDS):
             current_section = "Debit"
+        elif any(w in upper for w in CREDIT_SECTION_WORDS):
+            current_section = "Credit"
+
         if any(skip in upper for skip in SKIP_LINE_KEYWORDS):
             continue
 
@@ -205,11 +211,22 @@ def parse_universal_bank_rows(text: str) -> pd.DataFrame:
         if not amounts:
             continue
 
-        first_pos = money_matches[0].start()
-        description = re.sub(r"\s+", " ", rest[:first_pos]).strip()
+        # Use LAST amount as transaction amount for TD/ACH rows
+        last_match = money_matches[-1]
 
-        transaction_amount = amounts[-2] if len(amounts) >= 2 else amounts[-1]
-        balance = amounts[-1] if len(amounts) >= 2 else 0.0
+        description = re.sub(
+            r"\s+",
+            " ",
+            rest[:last_match.start()]
+        ).strip()
+
+        transaction_amount = amounts[-1]
+        balance = 0.0
+
+        # If there are 2+ amounts, assume last one is balance
+        if len(amounts) >= 2:
+            transaction_amount = amounts[-2]
+            balance = amounts[-1]
 
         if section == "Debit":
             debit, credit = abs(transaction_amount), 0.0
