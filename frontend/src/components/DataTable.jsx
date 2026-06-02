@@ -54,14 +54,17 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub, ta
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
-      {/* Table header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border-light gap-4">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div>
-            {title && <p className="text-sm font-bold text-text-primary">{title}</p>}
-            {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
-          </div>
-          {tabs && (
+      {/* Table header — three zones: title | tabs (center) | search */}
+      <div className="flex items-center px-5 py-4 border-b border-border-light gap-4">
+        {/* Left: title + sub */}
+        <div className="min-w-0 flex-shrink-0">
+          {title && <p className="text-sm font-bold text-text-primary">{title}</p>}
+          {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
+        </div>
+
+        {/* Center: tabs */}
+        {tabs && (
+          <div className="flex-1 flex justify-center">
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/10 rounded-xl p-1">
               {tabs.map((tab) => {
                 const count = data.filter(tab.filter).length
@@ -92,9 +95,11 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub, ta
                 )
               })}
             </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+          </div>
+        )}
+
+        {/* Right: row count + search */}
+        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           <span className="text-xs text-text-muted bg-gray-100 dark:bg-white/10 px-2.5 py-1 rounded-full font-medium">
             {sorted.length.toLocaleString()} rows
           </span>

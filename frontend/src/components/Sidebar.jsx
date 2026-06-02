@@ -2,7 +2,7 @@ import React from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, FileText, Building2, BarChart3,
-  Download, Activity, ChevronRight,
+  Download, ChevronRight,
 } from 'lucide-react'
 import clsx from 'clsx'
 import useStore from '../store/useStore'
@@ -31,9 +31,12 @@ export default function Sidebar() {
       {/* ── Brand ── */}
       <div className="px-5 pt-6 pb-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-3">
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-600
-                          flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
-            <Activity size={17} className="text-white" strokeWidth={2.5} />
+          <div className="relative w-9 h-9 flex-shrink-0">
+            <img
+              src="/CapInfBack.png"
+              alt="Capital Infusion logo"
+              className="w-9 h-9 rounded-xl object-cover"
+            />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent
                              border-2 border-sidebar animate-pulse-dot" />
           </div>
@@ -110,10 +113,11 @@ export default function Sidebar() {
       {/* ── Footer ── */}
       <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-slate-600 to-slate-700
-                          flex items-center justify-center flex-shrink-0">
-            <span className="font-mono text-[9px] font-bold text-white">CI</span>
-          </div>
+          <img
+            src="/CapInfBack.png"
+            alt="Capital Infusion"
+            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+          />
           <div>
             {/* sidebar-muted = 7.3:1 ✓ */}
             <p className="font-sans text-[11px] font-semibold text-sidebar-muted leading-none">

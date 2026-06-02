@@ -40,9 +40,7 @@ function TopBar() {
                      focus:border-blue-300 focus:ring-1 focus:ring-blue-200 transition-all w-44"
         />
         <ThemeToggle />
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-          <span className="text-[10px] font-bold text-white">CI</span>
-        </div>
+        <img src="/CapInfBack.png" alt="Capital Infusion" className="w-7 h-7 rounded-full object-cover" />
       </div>
     </header>
   )
