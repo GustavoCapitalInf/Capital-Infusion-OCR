@@ -8,8 +8,11 @@ Run:
     uvicorn backend.main:app --reload --port 8000
 """
 import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.api.upload import router as upload_router
 from backend.api.export import router as export_router
@@ -21,8 +24,13 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# Allow requests from the Vite dev server and any production origin
-origins = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+# CORS — include production Render URL plus local dev servers
+_default_origins = ",".join([
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://capital-infusion-ocr-1.onrender.com",
+])
+origins = os.environ.get("CORS_ORIGINS", _default_origins).split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API routers — must be registered BEFORE the static-file catch-all
 app.include_router(upload_router,   prefix="/api")
 app.include_router(export_router,   prefix="/api")
 app.include_router(keywords_router, prefix="/api")
@@ -40,3 +49,9 @@ app.include_router(keywords_router, prefix="/api")
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "Orbit Optix API"}
+
+
+# Serve the built React frontend (production only — skipped if dist doesn't exist yet)
+_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if _dist.exists():
+    app.mount("/", StaticFiles(directory=str(_dist), html=True), name="frontend")
