@@ -1,1 +1,6 @@
-[]
+[
+  {
+    "name": "paypal",
+    "type": "debit"
+  }
+]

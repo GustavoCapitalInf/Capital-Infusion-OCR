@@ -2,18 +2,25 @@ import React, { useMemo, useState } from 'react'
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import clsx from 'clsx'
 
-export default function DataTable({ columns, data, pageSize = 20, title, sub }) {
-  const [query,  setQuery]  = useState('')
-  const [page,   setPage]   = useState(1)
-  const [sort,   setSort]   = useState(null)
+export default function DataTable({ columns, data, pageSize = 20, title, sub, tabs }) {
+  const [query,     setQuery]     = useState('')
+  const [page,      setPage]      = useState(1)
+  const [sort,      setSort]      = useState(null)
+  const [activeTab, setActiveTab] = useState(tabs?.[0]?.key ?? null)
+
+  const tabbed = useMemo(() => {
+    if (!tabs || !activeTab) return data
+    const tab = tabs.find((t) => t.key === activeTab)
+    return tab ? data.filter(tab.filter) : data
+  }, [data, tabs, activeTab])
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return data
+    if (!query.trim()) return tabbed
     const q = query.toLowerCase()
-    return data.filter((row) =>
+    return tabbed.filter((row) =>
       Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q))
     )
-  }, [data, query])
+  }, [tabbed, query])
 
   const sorted = useMemo(() => {
     if (!sort) return filtered
@@ -48,12 +55,46 @@ export default function DataTable({ columns, data, pageSize = 20, title, sub }) 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-xs overflow-hidden">
       {/* Table header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
-        <div>
-          {title && <p className="text-sm font-bold text-text-primary">{title}</p>}
-          {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border-light gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            {title && <p className="text-sm font-bold text-text-primary">{title}</p>}
+            {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
+          </div>
+          {tabs && (
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/10 rounded-xl p-1">
+              {tabs.map((tab) => {
+                const count = data.filter(tab.filter).length
+                const isActive = activeTab === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => { setActiveTab(tab.key); setPage(1) }}
+                    className={clsx(
+                      'px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-150 cursor-pointer',
+                      isActive
+                        ? 'bg-white dark:bg-white/15 text-text-primary shadow-xs'
+                        : 'text-text-muted hover:text-text-secondary'
+                    )}
+                  >
+                    {tab.label}
+                    <span className={clsx(
+                      'ml-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+                      isActive
+                        ? tab.key === 'credits' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-300'
+                          : tab.key === 'debits' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300'
+                          : 'bg-gray-100 dark:bg-white/10 text-text-muted'
+                        : 'text-text-dim'
+                    )}>
+                      {count.toLocaleString()}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-xs text-text-muted bg-gray-100 dark:bg-white/10 px-2.5 py-1 rounded-full font-medium">
             {sorted.length.toLocaleString()} rows
           </span>

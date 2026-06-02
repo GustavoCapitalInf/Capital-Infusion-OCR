@@ -98,19 +98,20 @@ const empty = (msg = 'No statement data yet', cls = 'h-60') => (
 )
 
 // ── Themed axis primitives ──────────────────────────────────────────────────
-function ThemedGrid({ t }) { return <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} /> }
-function ThemedXAxis({ t }) {
-  return <XAxis dataKey="name" tick={{ fontSize: 11, fill: t.axis, fontFamily: 'Inter, sans-serif' }} axisLine={false} tickLine={false} />
-}
-function ThemedYAxis({ t, formatter = fmtK, width = 54, allowDecimals = true }) {
-  return (
-    <YAxis
-      tickFormatter={formatter} width={width} allowDecimals={allowDecimals}
-      tick={{ fontSize: 11, fill: t.axis, fontFamily: 'Inter, sans-serif' }}
-      axisLine={false} tickLine={false}
-    />
-  )
-}
+// NOTE: These must be PROP FACTORIES (not wrapper components) so that
+// <XAxis> and <YAxis> remain direct children of the chart — Recharts
+// detects axes by element.type and can't see through React component wrappers.
+const gridProps  = (t) => ({ strokeDasharray: '3 3', stroke: t.grid, vertical: false })
+const xAxisProps = (t) => ({
+  dataKey: 'name',
+  tick: { fontSize: 11, fill: t.axis, fontFamily: 'Inter, sans-serif' },
+  axisLine: false, tickLine: false,
+})
+const yAxisProps = (t, formatter = fmtK, width = 54, allowDecimals = true) => ({
+  tickFormatter: formatter, width, allowDecimals,
+  tick: { fontSize: 11, fill: t.axis, fontFamily: 'Inter, sans-serif' },
+  axisLine: false, tickLine: false,
+})
 const legendStyle = (t) => ({ fontSize: 11, color: t.legend, paddingBottom: 4, fontFamily: 'Inter, sans-serif' })
 const labelStyle  = (t) => ({ fontSize: 9, fill: t.label, fontFamily: 'JetBrains Mono, monospace' })
 
@@ -130,7 +131,7 @@ export function RevenueChart({ statements }) {
     <div aria-label={`Revenue vs Debits bar chart across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barGap={3} barCategoryGap="28%">
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t)} />
           <Tooltip content={(p) => <Tip {...p} t={t} />} cursor={{ fill: t.cursor }} />
           <Legend wrapperStyle={legendStyle(t)} iconType="square" iconSize={8} />
           <Bar dataKey="Credits" fill="#2563EB" radius={[4, 4, 0, 0]}>
@@ -167,7 +168,7 @@ export function CashFlowChart({ statements }) {
               <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t)} />
           <Tooltip content={(p) => <Tip {...p} t={t} />} />
           <ReferenceLine y={0} stroke={t.ref} strokeDasharray="4 4" />
           <Area
@@ -201,7 +202,7 @@ export function DailyBalanceTrendChart({ statements }) {
               <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t)} />
           <Tooltip content={(p) => <Tip {...p} t={t} />} />
           <Area
             type="monotone" dataKey="Avg Daily Balance"
@@ -230,7 +231,7 @@ export function FinancialOverviewChart({ statements }) {
     <div aria-label={`Financial overview line chart across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t)} />
           <Tooltip content={(p) => <Tip {...p} t={t} />} />
           <Legend wrapperStyle={legendStyle(t)} iconType="circle" iconSize={7} />
           <ReferenceLine y={0} stroke={t.ref} strokeDasharray="4 4" />
@@ -262,7 +263,7 @@ export function WithholdingRateChart({ statements }) {
               <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtPct} width={42} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t, fmtPct, 42)} />
           <Tooltip content={(p) => <Tip {...p} formatter={fmtPct} t={t} />} />
           <Area
             type="monotone" dataKey="Withholding Rate"
@@ -289,7 +290,7 @@ export function NSFCountChart({ statements }) {
     <div aria-label={`NSF count bar chart across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barCategoryGap="36%">
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtInt} width={32} allowDecimals={false} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t, fmtInt, 32, false)} />
           <Tooltip content={(p) => <Tip {...p} formatter={fmtInt} t={t} />} cursor={{ fill: t.cursor }} />
           <Bar dataKey="NSF Count" radius={[4, 4, 0, 0]}>
             {data.map((d, i) => (
@@ -389,7 +390,7 @@ export function MoMRevenueChart({ statements }) {
     <div aria-label={`Month-over-month revenue change across ${data.length} period(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barCategoryGap="36%">
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtPct} width={62} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t, fmtPct, 62)} />
           <Tooltip content={(p) => <Tip {...p} formatter={fmtPct} t={t} />} cursor={{ fill: t.cursor }} />
           <ReferenceLine y={0} stroke={t.ref} strokeDasharray="4 4" />
           <Bar dataKey="MoM Change" radius={[4, 4, 0, 0]}>
@@ -421,7 +422,7 @@ export function BalanceObligationChart({ statements }) {
     <div aria-label={`Balance-to-obligation ratio across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart data={data} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} formatter={fmtRatio} width={42} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t, fmtRatio, 42)} />
           <Tooltip content={(p) => <Tip {...p} formatter={(v) => v == null ? 'N/A' : fmtRatio(v)} t={t} />} />
           <ReferenceLine y={1} stroke="#EF4444" strokeDasharray="4 4"
             label={{ value: '1× min', position: 'insideTopRight', fontSize: 9, fill: '#EF4444' }} />
@@ -464,7 +465,7 @@ export function LenderInOutChart({ statements }) {
     <div aria-label={`Lender credits vs debits across ${data.length} statement(s)`}>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 16, right: 4, left: 0, bottom: 0 }} barGap={3} barCategoryGap="28%">
-          <ThemedGrid t={t} /><ThemedXAxis t={t} /><ThemedYAxis t={t} />
+          <CartesianGrid {...gridProps(t)} /><XAxis {...xAxisProps(t)} /><YAxis {...yAxisProps(t)} />
           <Tooltip content={(p) => <Tip {...p} t={t} />} cursor={{ fill: t.cursor }} />
           <Legend wrapperStyle={legendStyle(t)} iconType="square" iconSize={8} />
           <Bar dataKey="Lender Credits" fill="#10B981" radius={[4, 4, 0, 0]}>

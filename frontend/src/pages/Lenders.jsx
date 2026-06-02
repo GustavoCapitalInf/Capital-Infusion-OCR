@@ -83,12 +83,18 @@ export default function Lenders() {
 
       {/* Summary row */}
       {totals && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             label="Total Lender Debits"
             value={$(totals.lender_debits)}
             sub="MCA repayments detected"
             valueClass="text-amber dark:text-amber-400"
+          />
+          <StatCard
+            label="Total Lender Credits"
+            value={$(totals.lender_credits ?? 0)}
+            sub="MCA advances received"
+            valueClass="text-purple dark:text-purple-400"
           />
           <StatCard
             label="Withholding Rate"

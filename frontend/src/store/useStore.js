@@ -306,14 +306,52 @@ const useStore = create((set, get) => ({
     }
   },
 
-  // ── Remove a saved keyword (stops future auto-detection) ─────────────────
+  // ── Remove a saved keyword + all matching manual lender rows ─────────────
   removeCustomKeyword: (name, type) => {
-    // Optimistic update
-    set((state) => ({
-      customLenderKeywords: state.customLenderKeywords.filter(
-        (k) => !(k.name.toLowerCase() === name.toLowerCase() && k.type === type)
-      ),
-    }))
+    set((state) => {
+      const nameLower = name.toLowerCase()
+
+      // All manually-added rows that came from this keyword (saved or manual)
+      const toRemove = state.lenders.filter(
+        (l) => l.manual === true &&
+               (l.lender ?? '').toLowerCase() === nameLower &&
+               l.type === type
+      )
+
+      const removedAmount = toRemove.reduce((sum, l) => sum + Number(l.amount ?? 0), 0)
+      const removeIds     = new Set(toRemove.map((l) => l.id))
+
+      const n          = Math.max(state.statements.length, 1)
+      const prevTotals = state.totals ?? {}
+      const prevLdrDeb = Number(prevTotals.lender_debits  ?? 0)
+      const prevLdrCrd = Number(prevTotals.lender_credits ?? 0)
+      const totalCred  = Number(prevTotals.credits ?? 0)
+
+      const newLdrDeb = Math.max(0, prevLdrDeb - (type === 'debit'  ? removedAmount : 0))
+      const newLdrCrd = Math.max(0, prevLdrCrd - (type === 'credit' ? removedAmount : 0))
+      const newWHRate = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+
+      return {
+        customLenderKeywords: state.customLenderKeywords.filter(
+          (k) => !(k.name.toLowerCase() === nameLower && k.type === type)
+        ),
+        lenders: state.lenders.filter((l) => !removeIds.has(l.id)),
+        totals: removedAmount > 0 ? {
+          ...prevTotals,
+          lender_debits:    Number(newLdrDeb.toFixed(2)),
+          lender_credits:   Number(newLdrCrd.toFixed(2)),
+          withholding_rate: Number(newWHRate.toFixed(4)),
+        } : prevTotals,
+        averages: removedAmount > 0 ? {
+          ...(state.averages ?? {}),
+          lender_debits:    Number((newLdrDeb / n).toFixed(2)),
+          lender_credits:   Number((newLdrCrd / n).toFixed(2)),
+          withholding_rate: Number(newWHRate.toFixed(4)),
+        } : state.averages,
+      }
+    })
+
+    // Server-side keyword removal (fire-and-forget; confirm with server list)
     removeLenderKeyword(name, type)
       .then((updated) => set({ customLenderKeywords: updated }))
       .catch(console.error)

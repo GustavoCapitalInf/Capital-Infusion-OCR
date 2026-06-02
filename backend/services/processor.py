@@ -27,6 +27,7 @@ from utils.dates import extract_statement_date
 from utils.lender_detection import get_lender_debits, get_lender_credits
 from utils.metrics import count_nsf, count_pos, extract_charges_only
 from utils.ocr_headless import (
+    extract_columnar_transactions_from_pdf,
     extract_text_from_pdf,
     extract_text_from_image,
     translate_to_english,
@@ -113,6 +114,14 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
         raw_df = parse_universal_bank_rows(translated_text)
         if raw_df.empty:
             raw_df = parse_ocr_transactions(translated_text)
+        # If standard text-based parsing produced no credits (common for columnar-format
+        # banks like Wells Fargo where Deposits/Credits and Withdrawals/Debits are separate
+        # columns), fall back to column-position-aware extraction using word x-coordinates.
+        credits_found = raw_df["Credit"].sum() if not raw_df.empty and "Credit" in raw_df.columns else 0
+        if credits_found == 0:
+            col_df = extract_columnar_transactions_from_pdf(raw_bytes)
+            if not col_df.empty and col_df["Credit"].sum() > 0:
+                raw_df = col_df
     else:
         original_text = extract_text_from_image(raw_bytes)
         translated_text = normalize_transaction_text(translate_to_english(original_text))

@@ -89,7 +89,7 @@ export default function Analysis() {
       {risk && cfg ? (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Risk score card */}
-          <div className={clsx('lg:col-span-2 bg-white border rounded-2xl p-6 shadow-xs', cfg.border)}>
+          <div className={clsx('lg:col-span-2 bg-card border rounded-2xl p-6 shadow-xs', cfg.border)}>
             <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-5">Risk Assessment</p>
             <div className={clsx('w-14 h-14 rounded-2xl flex items-center justify-center mb-4', cfg.bg)}>
               <Icon size={24} className={cfg.text} strokeWidth={1.8} />

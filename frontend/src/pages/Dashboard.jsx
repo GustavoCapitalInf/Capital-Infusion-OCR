@@ -1,8 +1,58 @@
 import React from 'react'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { Sparkles, FileText, File } from 'lucide-react'
 import useStore from '../store/useStore'
 import UploadZone from '../components/UploadZone'
 import KpiGrid from '../components/KpiGrid'
+
+const FILE_ICON  = { pdf: FileText }
+const FILE_COLOR = {
+  pdf:     'text-red-500   bg-red-50   dark:bg-red-500/15   dark:text-red-300',
+  csv:     'text-green     bg-green-light dark:bg-green-500/15 dark:text-green-300',
+  xlsx:    'text-blue-600  bg-blue-50  dark:bg-blue-500/15  dark:text-blue-300',
+  default: 'text-gray-500  bg-gray-100 dark:bg-white/10     dark:text-slate-300',
+}
+
+function UploadedFiles({ statements }) {
+  if (!statements?.length) return null
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5 shadow-xs animate-fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.5px] text-text-muted">
+          Uploaded Files
+        </p>
+        <span className="text-[10px] font-semibold text-text-muted bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full">
+          {statements.length} file{statements.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {statements.map((s, i) => {
+          const ext   = (s.filename ?? '').split('.').pop().toLowerCase()
+          const Icon  = FILE_ICON[ext] ?? File
+          const color = FILE_COLOR[ext] ?? FILE_COLOR.default
+          const date  = s.statement_date ? s.statement_date.slice(0, 7) : null
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.04] border border-border rounded-xl px-3 py-2 max-w-[260px]"
+            >
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${color}`}>
+                <Icon size={12} strokeWidth={2} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-text-primary truncate leading-tight" title={s.filename}>
+                  {s.filename}
+                </p>
+                {date && (
+                  <p className="text-[10px] text-text-muted leading-tight">{date}</p>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function SectionDivider({ label }) {
   return (
@@ -95,12 +145,19 @@ export default function Dashboard() {
       </div>
 
       {/* Upload */}
-      <div className="mb-8">
+      <div className="mb-4">
         <p className="text-[11px] font-bold uppercase tracking-[1.5px] text-text-muted mb-3">
           Upload statements
         </p>
         <UploadZone />
       </div>
+
+      {/* Uploaded file list */}
+      {statements?.length > 0 && (
+        <div className="mb-8">
+          <UploadedFiles statements={statements} />
+        </div>
+      )}
 
       {/* Results */}
       {totals && (

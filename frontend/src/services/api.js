@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const client = axios.create({ baseURL: '/api' })
+// VITE_API_BASE_URL is set in .env.production → https://capital-infusion-ocr-1.onrender.com
+// In dev it is empty so the Vite proxy (/api → localhost:8000) handles requests.
+const BASE = import.meta.env.VITE_API_BASE_URL ?? ''
+const client = axios.create({ baseURL: `${BASE}/api` })
 
 export async function uploadStatements(files, clientId = '') {
   const form = new FormData()

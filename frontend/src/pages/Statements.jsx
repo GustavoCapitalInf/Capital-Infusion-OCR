@@ -111,6 +111,11 @@ export default function Statements() {
           pageSize={30}
           title="Transaction Details"
           sub={`${transactions.length.toLocaleString()} transactions · click + to add a row as a lender`}
+          tabs={[
+            { key: 'all',     label: 'All',     filter: () => true },
+            { key: 'credits', label: 'Credits', filter: (r) => Number(r.Credit ?? 0) > 0 },
+            { key: 'debits',  label: 'Debits',  filter: (r) => Number(r.Debit  ?? 0) > 0 },
+          ]}
         />
       )}
 
