@@ -141,6 +141,10 @@ def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     else:
         return pd.DataFrame()
 
+    # Pass Balance through if present (used for avg daily balance calculation)
+    if "Balance" in df.columns:
+        clean_df["Balance"] = df["Balance"].apply(_clean_amount)
+
     clean_df = clean_df.dropna(subset=["Date"])
     clean_df["Month"] = clean_df["Date"].dt.strftime("%B %Y")
     clean_df["Type"] = clean_df.apply(

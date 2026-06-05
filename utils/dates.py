@@ -26,10 +26,36 @@ MONTH_MAP = {
     "december": 12, "dec": 12,
 }
 
+# TD Canada Trust "SEP 29/25 - OCT 31/25" format
+_CA_PERIOD_RE = re.compile(
+    r"([A-Za-z]{3})\s*(\d{1,2})/(\d{2})\s*[-–]\s*([A-Za-z]{3})\s*(\d{1,2})/(\d{2})",
+    re.IGNORECASE,
+)
+
 _MONTH_NAMES = (
     "January|February|March|April|May|June|July|August|"
     "September|October|November|December"
 )
+
+
+def extract_statement_period(text: str) -> tuple[pd.Timestamp | None, pd.Timestamp | None]:
+    """
+    Return (start_date, end_date) from a statement period header.
+    Handles TD Canada Trust format: "SEP 29/25 - OCT 31/25".
+    """
+    m = _CA_PERIOD_RE.search(text)
+    if m:
+        s_mon, s_day, s_yr, e_mon, e_day, e_yr = m.groups()
+        sm = MONTH_MAP.get(s_mon.lower())
+        em = MONTH_MAP.get(e_mon.lower())
+        if sm and em:
+            try:
+                start = pd.Timestamp(year=2000 + int(s_yr), month=sm, day=int(s_day))
+                end   = pd.Timestamp(year=2000 + int(e_yr), month=em, day=int(e_day))
+                return start, end
+            except Exception:
+                pass
+    return None, None
 
 
 def extract_statement_date(
@@ -41,12 +67,24 @@ def extract_statement_date(
     Extract the end date of a statement period.
 
     Priority:
-      1. Chase "X through Y" pattern  → uses end date
-      2. Generic date patterns in text
-      3. Month name in filename  + year from filename / sibling files / system
+      1. TD Canada Trust "SEP 29/25 - OCT 31/25" → end date
+      2. Chase "X through Y" pattern  → uses end date
+      3. Generic date patterns in text
+      4. Month name in filename  + year from filename / sibling files / system
     """
 
-    # 1 — Chase "through" format
+    # 1 — TD Canada Trust "MON DD/YY - MON DD/YY" format
+    ca_m = _CA_PERIOD_RE.search(text)
+    if ca_m:
+        _, _, _, e_mon, e_day, e_yr = ca_m.groups()
+        em = MONTH_MAP.get(e_mon.lower())
+        if em:
+            try:
+                return pd.Timestamp(year=2000 + int(e_yr), month=em, day=int(e_day))
+            except Exception:
+                pass
+
+    # 2 — Chase "through" format
     chase = re.search(
         rf"(?:{_MONTH_NAMES})\s+\d{{1,2}},?\s+\d{{4}}\s+through\s+"
         rf"((?:{_MONTH_NAMES})\s+\d{{1,2}},?\s+\d{{4}})",
@@ -58,7 +96,7 @@ def extract_statement_date(
         except Exception:
             pass
 
-    # 2 — Generic patterns
+    # 3 — Generic patterns
     for pattern in [
         r"statement\s+(?:period|date)[:\s]+([A-Za-z]+\s+\d{1,2}[\s,]+\d{4})",
         r"period\s+ending\s+([A-Za-z]+\s+\d{1,2},?\s+\d{4})",
@@ -72,7 +110,7 @@ def extract_statement_date(
             except Exception:
                 continue
 
-    # 3 — Filename fallback
+    # 4 — Filename fallback
     name = filename.lower()
     year_m = re.search(r"\b(20\d{2})\b", name)
     if year_m:

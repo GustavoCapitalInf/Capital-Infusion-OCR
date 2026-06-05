@@ -26,7 +26,20 @@ const summaryCols = [
       </div>
     ),
   },
-  { key: 'statement_date', label: 'Period',   render: (v) => <span className="text-text-secondary">{v ? v.slice(0, 7) : '—'}</span> },
+  {
+    key: 'statement_date', label: 'Period',
+    render: (v, row) => {
+      if (row.period_start && row.period_end) {
+        const fmt = (iso) => {
+          const [y, m, d] = iso.split('-')
+          const mon = new Date(+y, +m - 1, 1).toLocaleString('en-US', { month: 'short' })
+          return `${mon} ${parseInt(d)}, '${y.slice(2)}`
+        }
+        return <span className="text-text-secondary">{fmt(row.period_start)} – {fmt(row.period_end)}</span>
+      }
+      return <span className="text-text-secondary">{v ? v.slice(0, 7) : '—'}</span>
+    },
+  },
   { key: 'credits',        label: 'Credits',  render: (v) => <span className="font-semibold text-green">{$(v)}</span> },
   { key: 'debits',         label: 'Debits',   render: (v) => <span className="font-semibold text-red">{$(v)}</span> },
   { key: 'cash_flow',      label: 'Cash Flow',render: (v) => <span className={`font-semibold ${Number(v) >= 0 ? 'text-green' : 'text-red'}`}>{Number(v) >= 0 ? '+' : ''}{$(v)}</span> },

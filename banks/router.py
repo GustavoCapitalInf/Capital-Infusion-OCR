@@ -116,6 +116,8 @@ def _generic_extract(text: str) -> dict:
             r"Deposits\s+and\s+Additions\s+\$?([\d,]+\.\d{2})",
             r"Electronic\s*Deposits\s+\$?([\d,]+\.\d{2})",
             r"Other\s*Credits\s+\$?([\d,]+\.\d{2})",
+            # TD Bank plain "Deposits" line (not preceded by "Electronic" or "Other")
+            r"(?<!Electronic )(?<!Other )(?<!\w)Deposits\s+\$?([\d,]+\.\d{2})",
         ]
         sd_patterns = [
             r"ATM\s*&?\s*Debit\s+Card\s+Withdrawals\s+\$?([\d,]+\.\d{2})",
@@ -212,6 +214,12 @@ def _pdf_direct_extract(uploaded_file) -> dict:
                     if "ELECTRONIC DEPOSITS" in upper:
                         td_credit += amt
                     elif "OTHER CREDITS" in upper:
+                        td_credit += amt
+                    elif ("DEPOSITS" in upper
+                          and "ELECTRONIC" not in upper
+                          and "OTHER" not in upper
+                          and "SUBTOTAL" not in upper
+                          and "POSTING" not in upper):
                         td_credit += amt
 
     except Exception as exc:

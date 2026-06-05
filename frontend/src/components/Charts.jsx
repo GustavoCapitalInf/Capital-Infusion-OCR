@@ -35,6 +35,17 @@ function useChartTheme() {
 }
 
 // ── Statement sort helpers ───────────────────────────────────────────────────
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function fmtMonthLabel(s) {
+  if (s.statement_date) {
+    const parts = s.statement_date.split('-')
+    const m = parseInt(parts[1], 10)
+    if (m >= 1 && m <= 12) return `${MONTH_NAMES[m - 1]} '${parts[0].slice(2)}`
+  }
+  return s.filename?.replace(/\.[^.]+$/, '').slice(0, 10) ?? ''
+}
+
 const MONTH_MAP = {
   january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
   july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
@@ -120,8 +131,8 @@ export function RevenueChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty()
 
-  const data = sortDesc(statements).map((s) => ({
-    name:            s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:            fmtMonthLabel(s),
     Credits:         s.credits         ?? 0,
     Debits:          s.debits          ?? 0,
     'Lender Debits': s.lender_debits   ?? 0,
@@ -153,8 +164,8 @@ export function CashFlowChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty()
 
-  const data = sortDesc(statements).map((s) => ({
-    name:        s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:        fmtMonthLabel(s),
     'Cash Flow': s.cash_flow ?? 0,
   }))
 
@@ -187,8 +198,8 @@ export function DailyBalanceTrendChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty()
 
-  const data = sortDesc(statements).map((s) => ({
-    name:              s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:              fmtMonthLabel(s),
     'Avg Daily Balance': s.avg_daily_balance ?? 0,
   }))
 
@@ -220,8 +231,8 @@ export function FinancialOverviewChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty()
 
-  const data = sortDesc(statements).map((s) => ({
-    name:                s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:                fmtMonthLabel(s),
     'Net Cash Flow':     s.cash_flow         ?? 0,
     'Lender Credits':    s.lender_credits     ?? 0,
     'Avg Daily Balance': s.avg_daily_balance  ?? 0,
@@ -248,8 +259,8 @@ export function WithholdingRateChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty('No statement data yet', 'h-52')
 
-  const data = sortDesc(statements).map((s) => ({
-    name:               s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:               fmtMonthLabel(s),
     'Withholding Rate': s.withholding_rate ?? 0,
   }))
 
@@ -281,8 +292,8 @@ export function NSFCountChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty('No statement data yet', 'h-52')
 
-  const data = sortDesc(statements).map((s) => ({
-    name:        s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:        fmtMonthLabel(s),
     'NSF Count': s.nsf_count ?? 0,
   }))
 
@@ -381,10 +392,10 @@ export function MoMRevenueChart({ statements }) {
       ? Number(((s.credits - prev.credits) / prev.credits * 100).toFixed(1))
       : 0
     return {
-      name: s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+      name: fmtMonthLabel(s),
       'MoM Change': change,
     }
-  }).reverse()
+  })
 
   return (
     <div aria-label={`Month-over-month revenue change across ${data.length} period(s)`}>
@@ -409,11 +420,11 @@ export function BalanceObligationChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty('No statement data yet', 'h-52')
 
-  const data = sortDesc(statements).map((s) => {
+  const data = sortAsc(statements).map((s) => {
     const bal = s.avg_daily_balance ?? 0
     const obl = s.lender_debits    ?? 0
     return {
-      name:  s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+      name:  fmtMonthLabel(s),
       'Balance / Obligation': obl > 0 ? Number(Math.min(bal / obl, 15).toFixed(2)) : null,
     }
   })
@@ -455,8 +466,8 @@ export function LenderInOutChart({ statements }) {
   const t = useChartTheme()
   if (!statements?.length) return empty('No statement data yet', 'h-52')
 
-  const data = sortDesc(statements).map((s) => ({
-    name:             s.statement_date ? s.statement_date.slice(0, 7) : s.filename?.replace(/\.[^.]+$/, '').slice(0, 10),
+  const data = sortAsc(statements).map((s) => ({
+    name:             fmtMonthLabel(s),
     'Lender Credits': s.lender_credits ?? 0,
     'Lender Debits':  s.lender_debits  ?? 0,
   }))
@@ -484,8 +495,7 @@ export function ForecastSparkline({ statements, predicted, nextMonthLabel }) {
   const t = useChartTheme()
   if (!statements?.length) return null
 
-  const label = (s) =>
-    s.statement_date ? s.statement_date.slice(0, 7) : (s.filename?.replace(/\.[^.]+$/, '').slice(0, 10) ?? '')
+  const label = (s) => fmtMonthLabel(s)
 
   const sorted = [...statements].sort((a, b) =>
     (a.statement_date ?? a.filename ?? '').localeCompare(b.statement_date ?? b.filename ?? ''))

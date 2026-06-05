@@ -122,6 +122,8 @@ def count_pos(temp_df: pd.DataFrame) -> int:
         r"|DBCRD\s+PMT\s+AP"
         r"|DBCRD\s+PUR\s+AP"
         r"|VISA\s+DDA\s+PUR\s+AP"
+        r"|\bINTERAC\s*PURCHASE"           # RBC: Interac purchase / Interacpurchase
+        r"|\bCONTACTLESS\s*INTERAC"      # RBC: Contactless Interac purchase
     )
  
     # Exclude non-POS uses of PURCHASE

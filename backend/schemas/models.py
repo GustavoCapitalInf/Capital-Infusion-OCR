@@ -6,6 +6,8 @@ from pydantic import BaseModel
 class StatementResult(BaseModel):
     filename: str
     statement_date: str | None
+    period_start: str | None = None
+    period_end: str | None = None
     credits: float
     debits: float
     cash_flow: float

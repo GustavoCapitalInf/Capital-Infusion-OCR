@@ -1,0 +1,580 @@
+{
+  "version": "9.3.2",
+  "generatedAt": "2026-06-02T17:26:22.541Z",
+  "rootPath": "C:\\Users\\GustavoPrietodePaula\\OneDrive - Capital Infusion\\Desktop\\New folder\\Capital-Infusion-OCR",
+  "recon": {
+    "frameworks": [
+      "vite"
+    ],
+    "languages": [
+      "python",
+      "javascript"
+    ],
+    "apiRoutes": [],
+    "authPatterns": [],
+    "databases": [],
+    "cloudProviders": [],
+    "frontendExposure": [],
+    "packageManagers": [
+      "npm",
+      "pip"
+    ],
+    "cicd": [],
+    "hasDockerfile": false,
+    "hasTerraform": false,
+    "hasKubernetes": false,
+    "envFiles": [
+      "frontend/.env",
+      "frontend/.env.production"
+    ],
+    "configFiles": []
+  },
+  "fileIndex": {
+    ".gitignore": {
+      "hash": "20a9112e99bf05546775ef82abec293935b9bb1c5f6a27a76ba55e52be5e59fe",
+      "size": 82,
+      "lastScanned": "2026-06-02T17:26:22.531Z"
+    },
+    "app.py": {
+      "hash": "89df6096d27471d9d18cb5c5366b9fcbee422e9355a835f78eb9e07cc5006d50",
+      "size": 72191,
+      "lastScanned": "2026-06-02T17:26:22.531Z"
+    },
+    "application_api.py": {
+      "hash": "d840971819fac2555083583cc3ccdb74fd976f26d1ada8c1402c0cc412c6fae5",
+      "size": 17630,
+      "lastScanned": "2026-06-02T17:26:22.531Z"
+    },
+    "lender_keywords.json": {
+      "hash": "ef253bdc0708e7c533512114b19fa2e6fcff838f3e03c98bc4f3b5fee720f222",
+      "size": 58,
+      "lastScanned": "2026-06-02T17:26:22.531Z"
+    },
+    "package.json": {
+      "hash": "4452a8030c4658583b56aa0616e0765f2605eee7edbfeeb98a5b020f3cf7ceca",
+      "size": 61,
+      "lastScanned": "2026-06-02T17:26:22.531Z"
+    },
+    "Procfile": {
+      "hash": "df6a5bd6633cd77fa2e560cf1ea728482da3a552a1d4d81bbdcbfe161feb7d1c",
+      "size": 58,
+      "lastScanned": "2026-06-02T17:26:22.532Z"
+    },
+    "README.md": {
+      "hash": "632f2c16967e7dd7ce40083cf689ced9f42816ca3d0bd0ba0c88caf41665dda8",
+      "size": 10511,
+      "lastScanned": "2026-06-02T17:26:22.532Z"
+    },
+    "requirements.txt": {
+      "hash": "fd56dcd0ce8f5fd09bb7c3213e975c5f6c13a1ada6710140068bc0dc56d224df",
+      "size": 312,
+      "lastScanned": "2026-06-02T17:26:22.532Z"
+    },
+    "run_api.py": {
+      "hash": "032599ff49f0b6b0e918d81f63a30c0a35d9641f821cb36998c67b8e16e1f367",
+      "size": 297,
+      "lastScanned": "2026-06-02T17:26:22.532Z"
+    },
+    "backend/main.py": {
+      "hash": "68c96a3508f2eb1a3d19384f27cd30b96aa01025ccd292670701797f90a7d697",
+      "size": 1623,
+      "lastScanned": "2026-06-02T17:26:22.532Z"
+    },
+    "backend/requirements.txt": {
+      "hash": "68fcef941748836a537ca9d6abb75a26d78c7bef77e592b3c83507221c8a3844",
+      "size": 102,
+      "lastScanned": "2026-06-02T17:26:22.533Z"
+    },
+    "backend/__init__.py": {
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "lastScanned": "2026-06-02T17:26:22.533Z"
+    },
+    "banks/base.py": {
+      "hash": "d6e2c6fcb85485b9831dedef6399041f198e2f2562e02a2b80e10e7bcee1866b",
+      "size": 11930,
+      "lastScanned": "2026-06-02T17:26:22.533Z"
+    },
+    "banks/bofa.py": {
+      "hash": "d0b05dbd87ffd55da5d00b2a888da5fcab3c8c1dd2b19b763c5d424173f4dc39",
+      "size": 3612,
+      "lastScanned": "2026-06-02T17:26:22.533Z"
+    },
+    "banks/capital_one.py": {
+      "hash": "9d62a4332c38cdb487456988ba74e002114275d59416fc0ecbc0c008ba3fbbd4",
+      "size": 1792,
+      "lastScanned": "2026-06-02T17:26:22.533Z"
+    },
+    "banks/chase.py": {
+      "hash": "b0a6f6326a3587f0fa74ed1d9afa5171620af71e7365669f930e814a49edca60",
+      "size": 5199,
+      "lastScanned": "2026-06-02T17:26:22.533Z"
+    },
+    "banks/pnc.py": {
+      "hash": "ad8336e6b9af539783d18e8a5dd02aa8d4481218bfbbad23eae0182584c732ae",
+      "size": 1554,
+      "lastScanned": "2026-06-02T17:26:22.534Z"
+    },
+    "banks/rbc.py": {
+      "hash": "34f80bfdafdaeac23be4c3e42b59645d963d97e508d1034c481e525ad3ca55a7",
+      "size": 1574,
+      "lastScanned": "2026-06-02T17:26:22.534Z"
+    },
+    "banks/router.py": {
+      "hash": "740834211d1627946cb795f6869c986d4f94af4a6c7bd7522e55c9e563d9b06f",
+      "size": 10273,
+      "lastScanned": "2026-06-02T17:26:22.534Z"
+    },
+    "banks/td.py": {
+      "hash": "95b60ecbbac31b5bea8250536a0cff36b3c31d3cc372223658cc071bf0b24fc7",
+      "size": 4722,
+      "lastScanned": "2026-06-02T17:26:22.534Z"
+    },
+    "banks/usbank.py": {
+      "hash": "bb638ea1c91bffc9b5d8dc9938e83652577c7e56f73eefa69c56dfc17fb3db92",
+      "size": 1948,
+      "lastScanned": "2026-06-02T17:26:22.534Z"
+    },
+    "banks/wells_fargo.py": {
+      "hash": "357753435316e13f360c3d28cdaf7fba29ce54021b9337cdef10d5d1ddaa1526",
+      "size": 2210,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/.env": {
+      "hash": "9610b95f3ece985e740ee273d0524bea5170f511ba5461fe661b7752c71026cd",
+      "size": 87,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/.env.production": {
+      "hash": "ffa8a11ad771116a2b3792cf1bc498c007bddca00be0e3da82753bab8e9a4b89",
+      "size": 65,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/index.html": {
+      "hash": "e51707e08ab12308c2d5d0b552e7feb68d4ba29155c613e3f1a8033639c30aa9",
+      "size": 668,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/package.json": {
+      "hash": "ee0e0fabfdaac9ff354e1c98f456d0b7500f42e8a2b4db488840483c2d69b135",
+      "size": 727,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/postcss.config.js": {
+      "hash": "10a08c60738750ec23929f6020122ad45be6f17d746e8dbcbba737aff3ffcb45",
+      "size": 67,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/tailwind.config.js": {
+      "hash": "f234995f226f92bbffbafaae5e29a233e1ad7405fb1cc20c7c1816ed358e3895",
+      "size": 4817,
+      "lastScanned": "2026-06-02T17:26:22.535Z"
+    },
+    "frontend/vite.config.js": {
+      "hash": "a06505047107c11012e1b0dd2721b8bc9592d854aa2c0e988bbd8910d6d47caf",
+      "size": 295,
+      "lastScanned": "2026-06-02T17:26:22.536Z"
+    },
+    "utils/application_ocr.py": {
+      "hash": "e37cf1a7f9d803b6ca3d7c0853250437905d7ad9ff91e4cac06cb83b999cf4ba",
+      "size": 17883,
+      "lastScanned": "2026-06-02T17:26:22.536Z"
+    },
+    "utils/balance.py": {
+      "hash": "091777f4eb43aa363f1d09348f442d47ffee06d4941ad8f782d0ba975fd9113c",
+      "size": 9734,
+      "lastScanned": "2026-06-02T17:26:22.536Z"
+    },
+    "utils/calculations.py": {
+      "hash": "178a64e13d059680d3a1a75770838e7e747395db6b7e4710d07017101b6f5084",
+      "size": 6352,
+      "lastScanned": "2026-06-02T17:26:22.536Z"
+    },
+    "utils/cleaning.py": {
+      "hash": "f166b5842426faadfd27801a4c873b2d688fa79efb43b287f85c6c2fed45c540",
+      "size": 4004,
+      "lastScanned": "2026-06-02T17:26:22.536Z"
+    },
+    "utils/dates.py": {
+      "hash": "3611b582b9c0a9aa3429bc71db6c697506e56ca8aae2f766cfaf091aedfca4ed",
+      "size": 2492,
+      "lastScanned": "2026-06-02T17:26:22.536Z"
+    },
+    "utils/lender_detection.py": {
+      "hash": "91c83fc9afebf845e221fb625316529d5612ee48b86a880961004b8c32a6b43d",
+      "size": 14191,
+      "lastScanned": "2026-06-02T17:26:22.537Z"
+    },
+    "utils/metrics.py": {
+      "hash": "f8f34c42f13fcecbaffdbc5861d2a0a0ccc1a7a5945a36b33144d34bde5d6e37",
+      "size": 15817,
+      "lastScanned": "2026-06-02T17:26:22.537Z"
+    },
+    "utils/ocr.py": {
+      "hash": "79384b9da8798bc0a86fce966a03a8d7f8aad15672fc46a8306b24feca6b7a85",
+      "size": 7335,
+      "lastScanned": "2026-06-02T17:26:22.537Z"
+    },
+    "utils/ocr_headless.py": {
+      "hash": "5836fd6d072102e57366e6ab4744727e7288942c11a50d31dce9ee7a0daeba39",
+      "size": 8240,
+      "lastScanned": "2026-06-02T17:26:22.537Z"
+    },
+    "utils/risk_detection.py": {
+      "hash": "094de676d2379c1ee18f6339fdf690b86535af6551503994cbe4182ecf0d9466",
+      "size": 3561,
+      "lastScanned": "2026-06-02T17:26:22.537Z"
+    },
+    "utils/teams_notify.py": {
+      "hash": "15480779b4a7a9985c179a3bb360f49ce8324379d4ef02d03b62ec32ecf37449",
+      "size": 2105,
+      "lastScanned": "2026-06-02T17:26:22.537Z"
+    },
+    "backend/api/export.py": {
+      "hash": "8d11144341837a5fc056eac45c74a990fc3c2c2a50612c2937e36168d476c4a9",
+      "size": 1334,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "backend/api/keywords.py": {
+      "hash": "3c4d0d44a6cc507ef0db6faf002028655ffb2b7d831ef60c90d5f603fa9c6b7e",
+      "size": 1414,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "backend/api/upload.py": {
+      "hash": "eff53b6f9213bad5356541de53a4349c5872d70cbdf37970bdd71b42897fcadd",
+      "size": 2844,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "backend/api/__init__.py": {
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "backend/services/processor.py": {
+      "hash": "1474a0c0e773d440f801675d7be601a0883a0557a31521823ad3aeb7722dc566",
+      "size": 13526,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "backend/services/__init__.py": {
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "backend/schemas/models.py": {
+      "hash": "61b3a819a68f03eadc926b38e197949640a451039444e68086e79bffee113f4b",
+      "size": 1229,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "frontend/src/App.jsx": {
+      "hash": "ac8ec7b79232cd26270712484f64f7b1ba76c7f9d026d9015e29498fbe776e82",
+      "size": 3501,
+      "lastScanned": "2026-06-02T17:26:22.538Z"
+    },
+    "frontend/src/index.css": {
+      "hash": "58c2964810a96d8c8d4c4a230a1c1bb043fd1a44f088204cf42b0eff5083c066",
+      "size": 7849,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/main.jsx": {
+      "hash": "c3a09500b71a18b79492d8939457f8ff477ddcefbd87619e275d68bc15111445",
+      "size": 240,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/components/AddLenderModal.jsx": {
+      "hash": "6f4a3336a9000072e49019217c91cf1a5ec5b78cd10909187de474b0dbaeca89",
+      "size": 10610,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/components/Charts.jsx": {
+      "hash": "1c1a01139ed9b88b947aa5ec3a9fff655905834d337165848e1bd895b4219e92",
+      "size": 25072,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/components/DataTable.jsx": {
+      "hash": "3f38d94101c96c14781f1b4df26cdb506f429b75470d94a62b369b8c6c13ed1a",
+      "size": 9336,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/components/KpiGrid.jsx": {
+      "hash": "f4b931b84b32ccbef15722bc0a1385a34dab8096f7502742bb893ea1d0a61096",
+      "size": 3634,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/components/MetricCard.jsx": {
+      "hash": "a172758bbd655fea4bad1f716c2d18c585de00175ace821e7accacee4cebf546",
+      "size": 3111,
+      "lastScanned": "2026-06-02T17:26:22.539Z"
+    },
+    "frontend/src/components/Sidebar.jsx": {
+      "hash": "7ca0932a0cb253db048954c78c98636e27b03ee0f8fc5ac9f389d3809b3681e1",
+      "size": 5741,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/components/ThemeToggle.jsx": {
+      "hash": "074970ad4c4ee1bd9b144c02418cfbc4cd9ba52703fd3b24776444f468762ad5",
+      "size": 2360,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/components/Toast.jsx": {
+      "hash": "85d72c07338f81c6f084c1b8896e1a4c0b8e179513cb953ea9f60903ebf026c0",
+      "size": 2679,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/components/UploadZone.jsx": {
+      "hash": "621ba0c0e6cf59077586d23b24468d22436a04da254407b49685596daeb946ff",
+      "size": 7155,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/services/api.js": {
+      "hash": "9604d125f48ddc81f4ef92f2d6d2c79416407e77fd2d08082e721672ca11dc31",
+      "size": 1954,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/pages/Analysis.jsx": {
+      "hash": "83eaca7c07b616c8afe8869bf311b467eb29599ab76e676911638cc533068ea8",
+      "size": 21292,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/pages/Dashboard.jsx": {
+      "hash": "4640eef6c7104f2bf6a1650162388492d10765dd13f2f200f521876f7a8c789d",
+      "size": 8154,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/pages/Export.jsx": {
+      "hash": "a265b990cd8738ecd947b7ab39dc48b62dcf8adccdc64dd7ffa9b1d4ff857c8c",
+      "size": 6649,
+      "lastScanned": "2026-06-02T17:26:22.540Z"
+    },
+    "frontend/src/pages/Lenders.jsx": {
+      "hash": "8e587fa4143c5d4aaf115f397a9559c8a0d592f86c6ce2a214d79fc4d176091f",
+      "size": 9897,
+      "lastScanned": "2026-06-02T17:26:22.541Z"
+    },
+    "frontend/src/pages/Statements.jsx": {
+      "hash": "b1efbbb21bd963cb7e0b06c76d8eec36de3c80351f476c7fd22bb4e99e28249f",
+      "size": 6527,
+      "lastScanned": "2026-06-02T17:26:22.541Z"
+    },
+    "frontend/src/store/useStore.js": {
+      "hash": "bac1cbf1bee5dcfb167176fdb0b93291a520c7c7eb31dda6382f2c2917e1e752",
+      "size": 13563,
+      "lastScanned": "2026-06-02T17:26:22.541Z"
+    }
+  },
+  "lastFindings": {
+    "backend/services/processor.py": [
+      {
+        "line": 209,
+        "column": 31,
+        "severity": "high",
+        "category": "api",
+        "rule": "API_UPLOAD_NO_TYPE_CHECK",
+        "title": "API: File Upload Without Type Validation",
+        "description": "File upload using original filename without type validation.",
+        "matched": "filename)",
+        "confidence": "low",
+        "cwe": "CWE-434",
+        "owasp": "A04:2021",
+        "fix": "Validate file extension and MIME type. Generate random filenames for storage."
+      }
+    ],
+    "backend/api/upload.py": [
+      {
+        "line": 72,
+        "column": 34,
+        "severity": "high",
+        "category": "api",
+        "rule": "API_UPLOAD_NO_TYPE_CHECK",
+        "title": "API: File Upload Without Type Validation",
+        "description": "File upload using original filename without type validation.",
+        "matched": "filename)",
+        "confidence": "low",
+        "cwe": "CWE-434",
+        "owasp": "A04:2021",
+        "fix": "Validate file extension and MIME type. Generate random filenames for storage."
+      }
+    ],
+    "frontend/src/components/DataTable.jsx": [
+      {
+        "line": 142,
+        "column": 30,
+        "severity": "high",
+        "category": "config",
+        "rule": "PII_NO_ENCRYPTION_AT_REST",
+        "title": "Privacy: PII Column Without Encryption",
+        "description": "Database column storing sensitive PII (SSN, credit card, passport) without encryption-at-rest annotation.",
+        "matched": "columns.length} className=\"px-5 py-16 text",
+        "confidence": "low",
+        "cwe": "CWE-311",
+        "owasp": "A02:2021",
+        "fix": "Encrypt sensitive PII columns at the application level or use database-level encryption."
+      }
+    ],
+    "requirements.txt": [
+      {
+        "line": 15,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: langdetect",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "langdetect",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: langdetect==x.y.z"
+      },
+      {
+        "line": 16,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: fastapi",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "fastapi",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: fastapi==x.y.z"
+      },
+      {
+        "line": 17,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: uvicorn[standard]",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "uvicorn[standard]",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: uvicorn[standard]==x.y.z"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: python-multipart",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "python-multipart",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: python-multipart==x.y.z"
+      },
+      {
+        "line": 15,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: langdetect",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "langdetect",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: langdetect==x.y.z"
+      },
+      {
+        "line": 16,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: fastapi",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "fastapi",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: fastapi==x.y.z"
+      },
+      {
+        "line": 17,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: uvicorn[standard]",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "uvicorn[standard]",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: uvicorn[standard]==x.y.z"
+      },
+      {
+        "line": 18,
+        "column": 0,
+        "severity": "medium",
+        "category": "supply-chain",
+        "rule": "UNPINNED_PYTHON_DEP",
+        "title": "Unpinned Python Dependency: python-multipart",
+        "description": "Python dependency without version pin. Pin to a specific version for reproducible builds.",
+        "matched": "python-multipart",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Pin version: python-multipart==x.y.z"
+      }
+    ],
+    "package.json": [
+      {
+        "line": 0,
+        "column": 0,
+        "severity": "low",
+        "category": "supply-chain",
+        "rule": "UNUSED_DEPENDENCY",
+        "title": "Unused Dependency: uvicorn",
+        "description": "\"uvicorn\" is in dependencies but never imported in project code. Unused dependencies increase attack surface.",
+        "matched": "uvicorn",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Remove if unused: npm uninstall uvicorn"
+      },
+      {
+        "line": 0,
+        "column": 0,
+        "severity": "low",
+        "category": "supply-chain",
+        "rule": "UNUSED_DEPENDENCY",
+        "title": "Unused Dependency: uvicorn",
+        "description": "\"uvicorn\" is in dependencies but never imported in project code. Unused dependencies increase attack surface.",
+        "matched": "uvicorn",
+        "confidence": "low",
+        "cwe": null,
+        "owasp": null,
+        "fix": "Remove if unused: npm uninstall uvicorn"
+      }
+    ],
+    "frontend/src/main.jsx": [
+      {
+        "line": 6,
+        "column": 10,
+        "severity": "medium",
+        "category": "injection",
+        "rule": "EXCEPTION_NO_ERROR_BOUNDARY",
+        "title": "Exception: React App Without Error Boundary",
+        "description": "React app rendered without an Error Boundary. Unhandled component errors will crash the entire UI.",
+        "matched": "createRoot(document.getElementById('root'))",
+        "confidence": "low",
+        "cwe": "CWE-755",
+        "owasp": "A10:2025",
+        "fix": "Wrap your app: <ErrorBoundary fallback={<ErrorPage />}><App /></ErrorBoundary>"
+      }
+    ]
+  },
+  "stats": {
+    "totalFiles": 66,
+    "totalFindings": 14,
+    "lastScore": 89.2,
+    "lastGrade": "B"
+  }
+}

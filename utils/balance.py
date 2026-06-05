@@ -59,15 +59,18 @@ _INVALID_CONTEXT = [
 ]
 
 _LEVEL0_PATTERNS = [
+    # \s* instead of \s+ so compressed PDFs ("AverageCollectedBalance") also match
     # Wells Fargo — threshold then actual
-    r"Average\s+[Ll]edger\s+[Bb]alance\s+\$?[\d,]+\.?\d*\s+(-?\$?[\d,]+\.?\d+)",
-    r"Average\s+[Ll]edger\s+[Bb]alance\s+\$?\s*(-?[\d,]+\.?\d+)",
-    r"Average\s+[Dd]aily\s+[Bb]alance\s+\$?\s*(-?[\d,]+\.?\d*)",
-    r"Average\s+[Cc]ollected\s+[Bb]alance\s+\$?\s*(-?[\d,]+\.?\d*)",
-    r"Average\s+[Aa]vailable\s+[Bb]alance\s+\$?\s*(-?[\d,]+\.?\d*)",
-    r"Average\s+[Cc]losing\s+[Bb]alance\s+\$?\s*(-?[\d,]+\.?\d*)",
-    r"Solde\s+moyen\s+\$?\s*(-?[\d,]+\.?\d*)",
-    r"Average\s+\w+\s+[Bb]alance\s+\$?\s*(-?[\d,]+\.?\d*)",
+    r"Average\s*[Ll]edger\s*[Bb]alance\s+\$?[\d,]+\.?\d*\s+(-?\$?[\d,]+\.?\d+)",
+    r"Average\s*[Ll]edger\s*[Bb]alance\s*\$?\s*(-?[\d,]+\.?\d+)",
+    r"Average\s*[Dd]aily\s*[Bb]alance\s*\$?\s*(-?[\d,]+\.?\d*)",
+    r"Average\s*[Cc]ollected\s*[Bb]alance\s*\$?\s*(-?[\d,]+\.?\d*)",
+    r"Average\s*[Aa]vailable\s*[Bb]alance\s*\$?\s*(-?[\d,]+\.?\d*)",
+    r"Average\s*[Cc]losing\s*[Bb]alance\s*\$?\s*(-?[\d,]+\.?\d*)",
+    r"Solde\s*moyen\s*\$?\s*(-?[\d,]+\.?\d*)",
+    r"Average\s*\w+\s*[Bb]alance\s*\$?\s*(-?[\d,]+\.?\d*)",
+    # TD Canada Trust: "MONTHLY AVER. CR. BAL. $294.88"
+    r"MONTHLY\s+AVER\w*\.?\s+CR\.?\s+BAL\.?\s+\$?\s*(-?[\d,]+\.?\d*)",
 ]
 
 
@@ -83,6 +86,23 @@ def extract_average_balance(text: str) -> float | None:
     flat = re.sub(r"\s+", " ", text)
     year_m = re.search(r"\b(20\d{2})\b", text)
     ref_year = int(year_m.group(1)) if year_m else _date.today().year
+
+    # ── Level 0 — Bank-printed average (checked FIRST; most authoritative) ──
+    # TD Bank prints "Average Collected Balance"; Wells Fargo prints
+    # "Average Ledger Balance"; Chase prints "Average Daily Balance".
+    # Prefer the bank's own stated figure over any computed average.
+    for pattern in _LEVEL0_PATTERNS:
+        m = re.search(pattern, flat, re.IGNORECASE)
+        if not m:
+            continue
+        # Use a 30-char lookback so section headers like "ACCOUNT SUMMARY"
+        # that appear 40+ chars earlier don't falsely trigger the ACCOUNT filter.
+        context = flat[max(0, m.start() - 30): m.end()].upper()
+        if any(kw in context for kw in _INVALID_CONTEXT):
+            continue
+        val = safe_money_balance(m.group(1).replace("$", "").strip())
+        if val is not None:
+            return val
 
     # ── Level 1 — Structured Daily Balance section ────────────────────────
     cleaned = re.sub(r"\*(?:start|end)\*[^\n]*\n?", "\n", text, flags=re.IGNORECASE)
@@ -137,18 +157,6 @@ def extract_average_balance(text: str) -> float | None:
 
             all_vals = [v for _, v in date_balance_pairs]
             return sum(all_vals) / len(all_vals)
-
-    # ── Level 0 — Bank-printed average from fee-summary block ────────────
-    for pattern in _LEVEL0_PATTERNS:
-        m = re.search(pattern, flat, re.IGNORECASE)
-        if not m:
-            continue
-        context = flat[max(0, m.start() - 60): m.end()].upper()
-        if any(kw in context for kw in _INVALID_CONTEXT):
-            continue
-        val = safe_money_balance(m.group(1).replace("$", "").strip())
-        if val is not None:
-            return val
 
     # ── Level 2 — Sparse "Ending daily balance" column ───────────────────
     begin_m = re.search(

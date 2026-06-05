@@ -23,7 +23,7 @@ from banks.router import route_and_extract
 from utils.balance import extract_average_balance, extract_daily_balances_from_text
 from utils.calculations import prepare_dataframe
 from utils.cleaning import normalize_transaction_text, clean_money
-from utils.dates import extract_statement_date
+from utils.dates import extract_statement_date, extract_statement_period
 from utils.lender_detection import get_lender_debits, get_lender_credits
 from utils.metrics import count_nsf, count_pos, extract_charges_only
 from utils.ocr_headless import (
@@ -111,12 +111,43 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
         original_text = extract_text_from_pdf(raw_bytes)
         translated_text = normalize_transaction_text(translate_to_english(original_text))
         _, charges_only_total = extract_charges_only(translated_text)
-        raw_df = parse_universal_bank_rows(translated_text)
+
+        # RBC uses a multi-column layout with a "DD Mon" date format that the
+        # universal parser can't handle — use the dedicated columnar extractor.
+        from banks.rbc import RBCParser
+        if RBCParser.is_this_bank(original_text):
+            raw_df = RBCParser.parse_transactions(raw_bytes)
+            if not raw_df.empty:
+                print(f"[process_file] RBC columnar parser: {len(raw_df)} rows")
+
+        # TD Bank uses a section-based layout (Deposits / Electronic Deposits /
+        # Other Credits / Electronic Payments …) that the generic parser
+        # misclassifies because "DEBIT CARD CREDIT" descriptions trigger the
+        # debit-section heuristic.  Use the dedicated section-aware extractor.
+        from banks.td import TDParser
+        if raw_df.empty and TDParser.is_this_bank(original_text):
+            raw_df = TDParser.parse_transactions(raw_bytes)
+            if not raw_df.empty:
+                print(f"[process_file] TD section parser: {len(raw_df)} rows")
+
+        # Chase PDF layout places section headers AFTER their transactions, so
+        # the generic parser can't detect sections before classifying rows.
+        # ChaseParser.parse_transactions buffers rows and retroactively tags them
+        # once the trailing section header is seen — fixing the Paymentech/PAYMENT
+        # substring false-positive that marks all ACH deposits as debits.
+        from banks.chase import ChaseParser
+        if raw_df.empty and ChaseParser.is_this_bank(original_text):
+            raw_df = ChaseParser.parse_transactions(original_text)
+            if not raw_df.empty:
+                print(f"[process_file] Chase section parser: {len(raw_df)} rows")
+
+        # Generic fallback parsers
+        if raw_df.empty:
+            raw_df = parse_universal_bank_rows(translated_text)
         if raw_df.empty:
             raw_df = parse_ocr_transactions(translated_text)
-        # If standard text-based parsing produced no credits (common for columnar-format
-        # banks like Wells Fargo where Deposits/Credits and Withdrawals/Debits are separate
-        # columns), fall back to column-position-aware extraction using word x-coordinates.
+
+        # If still no credits, try the generic columnar extractor
         credits_found = raw_df["Credit"].sum() if not raw_df.empty and "Credit" in raw_df.columns else 0
         if credits_found == 0:
             col_df = extract_columnar_transactions_from_pdf(raw_bytes)
@@ -145,6 +176,15 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
     else:
         file_credits = temp_df["Credit"].sum() if not temp_df.empty and "Credit" in temp_df.columns else 0.0
         file_debits  = temp_df["Debit"].sum()  if not temp_df.empty and "Debit"  in temp_df.columns else 0.0
+        # raw_df is more complete than temp_df when prepare_dataframe drops rows
+        # (e.g. date parsing issues).  Take the max so the higher value wins.
+        if not raw_df.empty:
+            rc = raw_df["Credit"].sum() if "Credit" in raw_df.columns else 0.0
+            rd = raw_df["Debit"].sum()  if "Debit"  in raw_df.columns else 0.0
+            if rc > file_credits:
+                file_credits = round(rc, 2)
+            if rd > file_debits:
+                file_debits = round(rd, 2)
 
     print(f"[process_file] '{filename}' file_credits={file_credits}, file_debits={file_debits}")
 
@@ -163,7 +203,7 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
     if avg_bal is None:
         daily = extract_daily_balances_from_text(original_text) if original_text else []
         if not daily and not temp_df.empty and "Balance" in temp_df.columns:
-            daily = temp_df["Balance"].dropna().tolist()
+            daily = [b for b in temp_df["Balance"].dropna().tolist() if b > 0]
         avg_bal = float(sum(daily) / len(daily)) if daily else 0.0
 
     flagged = []
@@ -181,10 +221,13 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
                 break
 
     statement_date = extract_statement_date(original_text, filename, all_filenames)
+    period_start, period_end = extract_statement_period(original_text) if original_text else (None, None)
 
     metrics = {
         "filename":          filename,
         "statement_date":    statement_date.isoformat() if statement_date else None,
+        "period_start":      period_start.isoformat() if period_start else None,
+        "period_end":        period_end.isoformat() if period_end else None,
         "credits":           round(file_credits, 2),
         "debits":            round(file_debits, 2),
         "cash_flow":         round(file_credits - file_debits, 2),

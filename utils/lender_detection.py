@@ -94,7 +94,9 @@ ALWAYS_DEBIT_SUBSTRINGS: list[str] = [
     "SHOPIFY CAPITAL DES",
     "SHOPIFY CREDIT DES",
     "CHECKCARD",
-    "ORIG CO NAME:",      # Chase ACH debit format — always outgoing repayment
+    # NOTE: "ORIG CO NAME:" was removed — Chase uses this prefix for BOTH incoming
+    # lender advances (deposits) and outgoing repayments, so it cannot reliably
+    # indicate direction.  Column assignment (Debit vs Credit) is used instead.
     "REFERENCE #",        # Wells Fargo returned/unpaid item — attempted debit that bounced
 ]
 
@@ -160,7 +162,7 @@ LENDER_KEYWORDS: dict[str, list[str]] = {
     "FORWARD FINANCING": ["FORWARD FINANCIN", "FORWARD FINANCING", "FORWARDFINANCIN", "FORWARD FINANCINFF"],
     "FUNDBOX": ["FUNDBOX"],
     "FUNDATION": ["FUNDATION"],
-    "FUNDIFI": ["FUNDIFI", "FUNDFI"],
+    "FUNDIFI": ["FUNDIFI", "FUNDFI", "FUNDFI CANADA", "FUNDFICANADA"],
     "FUNDWORKS": [
         "FW CAPITAL", "FWCAPITAL", "FUNDWORKS", "FUND WORKS",
         "THE FUNDWORKS", "THE FUND WORKS", "FUNDWORK", "FUND WORK",
@@ -186,6 +188,7 @@ LENDER_KEYWORDS: dict[str, list[str]] = {
     "LOANME": ["LOAN ME", "LOANME"],
     "MUDFLAP": ["MUDFLAP"],
     "NATIONAL FUNDING": ["NATIONAL FUNDING"],
+    "NAVITAS CREDIT CORP": ["NAVITAS CREDIT CORP", "NAVITAS CREDIT C", "NAVITAS"],
     "NMEF": ["NMEF", "NMEF 2023 A"],
     "ONDECK": ["ON DECK", "ONDECK", "ENOVA"],
     "PAR FUNDING": ["PAR", "PAR FUNDING"],
@@ -227,6 +230,11 @@ def detect_company(description: str, keyword_dict: dict) -> tuple[str, str]:
                     return lender_name, ck
                 # Handle squished format: "RETROADVANCE9547435581..." starts with keyword
                 if desc_variant.startswith(ck) or desc_variant.startswith(ck.replace(" ", "")):
+                    return lender_name, ck
+                # Handle PDF-compressed compound words: "FUNDFICANADA" where the lender
+                # keyword is merged with extra text (e.g. city/country/suffix).
+                # Only applied to keywords ≥ 6 chars to avoid short-keyword false positives.
+                if len(ck) >= 6 and re.search(r"\b" + re.escape(ck), desc_variant):
                     return lender_name, ck
     return "", ""
 
