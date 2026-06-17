@@ -52,7 +52,7 @@ function FileCard({ file, onRemove }) {
 
 export default function UploadZone() {
   const [files, setFiles] = useState([])
-  const { clientId, isUploading, uploadError, setUploading, setUploadError, setResults } = useStore()
+  const { clientId, isUploading, uploadError, setUploading, setUploadError, setResults, setUploadedFiles } = useStore()
   const [success, setSuccess] = useState(false)
   const [toast, setToast] = useState(null) // { type, message }
 
@@ -70,6 +70,7 @@ export default function UploadZone() {
 
   const handleProcess = async () => {
     if (!files.length) return
+    setUploadedFiles(files)
     setUploading(true)
     setUploadError(null)
     setSuccess(false)

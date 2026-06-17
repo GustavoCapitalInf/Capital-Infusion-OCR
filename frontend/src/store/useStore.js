@@ -86,6 +86,12 @@ function applyThemeToDOM(theme) {
 const initialTheme = readInitialTheme()
 applyThemeToDOM(initialTheme)
 
+function revokeUploadedFiles(filesMap) {
+  Object.values(filesMap ?? {}).forEach(({ url }) => {
+    if (url) URL.revokeObjectURL(url)
+  })
+}
+
 const useStore = create((set, get) => ({
   // Theme
   theme: initialTheme,
@@ -116,6 +122,11 @@ const useStore = create((set, get) => ({
   risk: null,
   transactions: [],
 
+  // Original uploaded files for in-app preview (session-only, browser memory)
+  uploadedFiles: {},
+  previewFilename: null,
+  previewPanelWidth: 42,
+
   // Persisted custom lender keywords (populated from server on app load)
   customLenderKeywords: [],
 
@@ -131,6 +142,26 @@ const useStore = create((set, get) => ({
 
   setUploading: (v) => set({ isUploading: v }),
   setUploadError: (e) => set({ uploadError: e }),
+
+  setUploadedFiles: (files) => {
+    const prev = get().uploadedFiles
+    revokeUploadedFiles(prev)
+    const uploadedFiles = {}
+    files.forEach((f) => {
+      uploadedFiles[f.name] = { file: f, url: URL.createObjectURL(f) }
+    })
+    const prevPreview = get().previewFilename
+    const stillExists = prevPreview && uploadedFiles[prevPreview]
+    set({
+      uploadedFiles,
+      previewFilename: stillExists ? prevPreview : null,
+    })
+  },
+
+  openStatementPreview: (filename) => set({ previewFilename: filename }),
+  closeStatementPreview: () => set({ previewFilename: null }),
+  setPreviewPanelWidth: (width) =>
+    set({ previewPanelWidth: Math.min(85, Math.max(15, width)) }),
 
   setResults: (data) =>
     set((state) => {
@@ -148,11 +179,14 @@ const useStore = create((set, get) => ({
       }
     }),
 
-  clearResults: () =>
+  clearResults: () => {
+    revokeUploadedFiles(get().uploadedFiles)
     set({
       sessionId: null, statements: [], totals: null, averages: null,
       lenders: [], flagged: [], risk: null, transactions: [],
-    }),
+      uploadedFiles: {}, previewFilename: null,
+    })
+  },
 
   // ── Add ALL matching transactions for a lender + save keyword ────────────
   addManualLenderBulk: (txns, lenderName, type) =>
