@@ -155,6 +155,19 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
             if not raw_df.empty:
                 print(f"[process_file] Capital One parser: {len(raw_df)} rows")
 
+        # Regions statements are scanned (image-only) PDFs read by EasyOCR,
+        # whose column-grouped output splits each transaction's date,
+        # description and amount onto separate lines.  RegionsParser parses the
+        # clean OCR text when available and otherwise re-OCRs with word boxes
+        # to re-join real rows.
+        from banks.regions import RegionsParser
+        if raw_df.empty and RegionsParser.is_this_bank(original_text):
+            raw_df = RegionsParser.parse_transactions(original_text)
+            if raw_df.empty:
+                raw_df = RegionsParser.parse_transactions(raw_bytes)
+            if not raw_df.empty:
+                print(f"[process_file] Regions parser: {len(raw_df)} rows")
+
         # Generic fallback parsers
         if raw_df.empty:
             raw_df = parse_universal_bank_rows(translated_text)
@@ -222,6 +235,13 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
         if not daily and not temp_df.empty and "Balance" in temp_df.columns:
             daily = [b for b in temp_df["Balance"].dropna().tolist() if b > 0]
         avg_bal = float(sum(daily) / len(daily)) if daily else 0.0
+
+    # Regions prints no average daily balance and its transactions carry no
+    # running balance — estimate it from the Beginning/Ending balances.
+    if not avg_bal and original_text:
+        from banks.regions import RegionsParser
+        if RegionsParser.is_this_bank(original_text):
+            avg_bal = RegionsParser.estimate_avg_balance(original_text)
 
     flagged = []
     for line in translated_text.split("\n"):

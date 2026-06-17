@@ -17,10 +17,10 @@ import numpy as np
 import pandas as pd
 import pdfplumber
 import pytesseract
-from pdf2image import convert_from_bytes
 from PIL import Image
 
 from utils.cleaning import clean_money, fix_spaced_ocr_text
+from utils.pdf_render import pdf_to_images
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 POPPLER_PATH = r"C:\Users\MohammedBharoocha\Downloads\poppler\poppler-26.02.0\Library\bin"
@@ -71,7 +71,7 @@ def extract_text_from_pdf(file_obj) -> str:
     # Tier 2 — EasyOCR (scanned)
     try:
         reader = _get_easyocr_reader()
-        pages = convert_from_bytes(raw, dpi=300, poppler_path=POPPLER_PATH)
+        pages = pdf_to_images(raw, dpi=300, poppler_path=POPPLER_PATH)
         full_text = ""
         for page in pages:
             results = reader.readtext(_preprocess(page), detail=0, paragraph=True)
@@ -83,7 +83,7 @@ def extract_text_from_pdf(file_obj) -> str:
 
     # Tier 3 — Tesseract
     try:
-        pages = convert_from_bytes(raw, dpi=300, poppler_path=POPPLER_PATH)
+        pages = pdf_to_images(raw, dpi=300, poppler_path=POPPLER_PATH)
         full_text = "".join(pytesseract.image_to_string(page) + "\n" for page in pages)
         return fix_spaced_ocr_text(full_text)
     except Exception as exc:

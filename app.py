@@ -739,7 +739,19 @@ def process_file(uploaded_file, all_filenames, debug_mode):
             original_text   = extract_text_from_pdf(uploaded_file, debug_mode)
             translated_text = normalize_transaction_text(translate_to_english(original_text))
             _, charges_only_total = extract_charges_only(translated_text)
-            raw_df = parse_universal_bank_rows(translated_text)
+
+            # Regions statements are scanned PDFs whose EasyOCR output splits
+            # each transaction's date / description / amount onto separate
+            # lines; the universal parser can't reassemble them, so use the
+            # dedicated Regions parser (clean text first, then word boxes).
+            from banks.regions import RegionsParser
+            if RegionsParser.is_this_bank(original_text):
+                raw_df = RegionsParser.parse_transactions(original_text)
+                if raw_df.empty:
+                    raw_df = RegionsParser.parse_transactions(uploaded_file.getvalue())
+
+            if raw_df.empty:
+                raw_df = parse_universal_bank_rows(translated_text)
             if raw_df.empty:
                 raw_df = parse_ocr_transactions(translated_text)
         else:
@@ -810,6 +822,13 @@ def process_file(uploaded_file, all_filenames, debug_mode):
             stmt_avg_balance = float(sum(daily) / len(daily)) if daily else 0.0
         else:
             stmt_avg_balance = float(avg_bal_result)
+
+        # Regions prints no average daily balance and its rows carry no running
+        # balance — estimate from the Beginning/Ending balances.
+        if not stmt_avg_balance and original_text:
+            from banks.regions import RegionsParser
+            if RegionsParser.is_this_bank(original_text):
+                stmt_avg_balance = RegionsParser.estimate_avg_balance(original_text)
 
         statement_date = extract_statement_date(original_text, uploaded_file.name, all_filenames)
         status.update(label="Complete", state="complete")

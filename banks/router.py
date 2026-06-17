@@ -21,6 +21,7 @@ from banks.rbc import RBCParser
 from banks.usbank import USBankParser
 from banks.pnc import PNCParser
 from banks.capital_one import CapitalOneParser
+from banks.regions import RegionsParser
 from utils.cleaning import clean_money, fix_spaced_ocr_text
 
 
@@ -34,6 +35,7 @@ PARSERS: list[type[BankParser]] = [
     USBankParser,
     PNCParser,
     CapitalOneParser,
+    RegionsParser,
 ]
 
 

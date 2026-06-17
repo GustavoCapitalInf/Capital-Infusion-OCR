@@ -101,7 +101,18 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
         original_text   = extract_text_from_pdf(raw_bytes)
         translated_text = normalize_transaction_text(translate_to_english(original_text))
         _, charges_only_total = extract_charges_only(translated_text)
-        raw_df = parse_universal_bank_rows(translated_text)
+
+        # Regions: scanned PDF whose EasyOCR output splits each transaction's
+        # date / description / amount onto separate lines — use the dedicated
+        # parser (clean text first, then word-box reconstruction).
+        from banks.regions import RegionsParser
+        if RegionsParser.is_this_bank(original_text):
+            raw_df = RegionsParser.parse_transactions(original_text)
+            if raw_df.empty:
+                raw_df = RegionsParser.parse_transactions(raw_bytes)
+
+        if raw_df.empty:
+            raw_df = parse_universal_bank_rows(translated_text)
         if raw_df.empty:
             raw_df = parse_ocr_transactions(translated_text)
     else:  # image
@@ -144,6 +155,12 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
         if not daily and not temp_df.empty and "Balance" in temp_df.columns:
             daily = temp_df["Balance"].dropna().tolist()
         avg_bal = float(sum(daily) / len(daily)) if daily else 0.0
+
+    # Regions prints no average daily balance — estimate from Beginning/Ending.
+    if not avg_bal and original_text:
+        from banks.regions import RegionsParser
+        if RegionsParser.is_this_bank(original_text):
+            avg_bal = RegionsParser.estimate_avg_balance(original_text)
 
     statement_date = extract_statement_date(original_text, filename, all_filenames)
 
