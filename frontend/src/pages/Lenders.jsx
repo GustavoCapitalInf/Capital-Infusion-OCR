@@ -188,6 +188,11 @@ export default function Lenders() {
           pageSize={20}
           title="Lender Transactions"
           sub="Individual transactions matched to known lenders"
+          tabs={[
+            { key: 'all',    label: 'All',     filter: () => true },
+            { key: 'debit',  label: 'Debits',  filter: (r) => r.type !== 'credit' },
+            { key: 'credit', label: 'Credits', filter: (r) => r.type === 'credit' },
+          ]}
         />
       )}
 

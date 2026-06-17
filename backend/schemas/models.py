@@ -16,6 +16,7 @@ class StatementResult(BaseModel):
     withholding_rate: float
     nsf_count: int
     loan_count: int
+    pos_count: int
     avg_daily_balance: float
     charges_only: float
 
@@ -29,6 +30,7 @@ class Totals(BaseModel):
     true_revenue: float
     nsf_count: int
     loan_count: int
+    pos_count: int
     avg_daily_balance: float
     withholding_rate: float
 
