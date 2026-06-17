@@ -68,7 +68,18 @@ export default function Lenders() {
 
   const totalsPerLender = useMemo(() => {
     const map = {}
-    lenders.forEach(({ lender, amount }) => { map[lender] = (map[lender] ?? 0) + amount })
+    const seen = new Set()
+    lenders.forEach(({ lender, amount, statement, monthly_amount }) => {
+      const key = `${lender}::${statement ?? ''}`
+      if (monthly_amount != null && monthly_amount > 0) {
+        if (!seen.has(key)) {
+          seen.add(key)
+          map[lender] = (map[lender] ?? 0) + monthly_amount
+        }
+      } else {
+        map[lender] = (map[lender] ?? 0) + amount
+      }
+    })
     return Object.entries(map).map(([lender, total]) => ({ lender, total })).sort((a, b) => b.total - a.total)
   }, [lenders])
 
@@ -87,7 +98,7 @@ export default function Lenders() {
           <StatCard
             label="Total Lender Debits"
             value={$(totals.lender_debits)}
-            sub="MCA repayments detected"
+            sub="Monthly est. (weekly × 4.33)"
             valueClass="text-amber dark:text-amber-400"
           />
           <StatCard
@@ -148,7 +159,7 @@ export default function Lenders() {
       {totalsPerLender.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-6 shadow-xs">
           <p className="text-sm font-bold text-text-primary mb-1">Lender Breakdown</p>
-          <p className="text-xs text-text-muted mb-6">Total repayments per detected lender</p>
+          <p className="text-xs text-text-muted mb-6">Monthly obligation per lender (weekly payment × 4.33)</p>
           <div className="space-y-4">
             {totalsPerLender.map(({ lender, total }) => (
               <div key={lender} className="flex items-center gap-4">

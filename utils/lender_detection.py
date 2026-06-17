@@ -247,6 +247,71 @@ def is_false_lender(description: str) -> tuple[bool, str]:
     return False, ""
 
 
+# Average weeks per month (52 / 12) — used to convert weekly MCA payments to monthly obligation.
+WEEKS_PER_MONTH = 4.33
+
+
+def _median_amount(amounts: list[float]) -> float:
+    if not amounts:
+        return 0.0
+    sorted_amts = sorted(amounts)
+    n = len(sorted_amts)
+    mid = n // 2
+    return sorted_amts[mid] if n % 2 else (sorted_amts[mid - 1] + sorted_amts[mid]) / 2
+
+
+def _parse_txn_dates(series: pd.Series) -> list[pd.Timestamp]:
+    dates: list[pd.Timestamp] = []
+    for d in series:
+        ts = pd.to_datetime(d, errors="coerce")
+        if pd.notna(ts):
+            dates.append(ts)
+    return sorted(dates)
+
+
+def _payment_frequency(dates: list[pd.Timestamp]) -> str:
+    """Return 'weekly', 'monthly', or 'other' based on gaps between payments."""
+    if len(dates) < 2:
+        return "weekly"  # single payment — treat as weekly MCA obligation
+    gaps = [(dates[i] - dates[i - 1]).days for i in range(1, len(dates))]
+    weekly_hits = sum(1 for g in gaps if 5 <= g <= 9)
+    monthly_hits = sum(1 for g in gaps if 25 <= g <= 35)
+    if weekly_hits >= len(gaps) / 2:
+        return "weekly"
+    if monthly_hits >= len(gaps) / 2:
+        return "monthly"
+    return "other"
+
+
+def _lender_monthly_debit(amounts: list[float], dates: list[pd.Timestamp]) -> float:
+    """Monthly lender obligation: weekly payment × 4.33 for recurring weekly MCAs."""
+    if not amounts:
+        return 0.0
+    freq = _payment_frequency(dates)
+    typical = _median_amount(amounts)
+    if freq == "weekly":
+        return round(typical * WEEKS_PER_MONTH, 2)
+    return round(sum(amounts), 2)
+
+
+def normalize_lender_debits_by_lender(lender_df: pd.DataFrame) -> dict[str, float]:
+    """Per-lender monthly debit totals (weekly payment × 4.33 when weekly)."""
+    if lender_df.empty:
+        return {}
+    result: dict[str, float] = {}
+    for lender, group in lender_df.groupby("Detected Lender"):
+        amounts = group["Lender Debit Amount"].astype(float).tolist()
+        dates = _parse_txn_dates(group["Date"])
+        result[str(lender)] = _lender_monthly_debit(amounts, dates)
+    return result
+
+
+def normalize_lender_debits_monthly(lender_df: pd.DataFrame) -> float:
+    """Sum of per-lender monthly obligations for a statement."""
+    by_lender = normalize_lender_debits_by_lender(lender_df)
+    return round(sum(by_lender.values()), 2)
+
+
 def get_lender_debits(
     df: pd.DataFrame,
     total_revenue: float,

@@ -31,7 +31,7 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
         <MetricCard label="True Revenue"      value={$(data.true_revenue)}     sub="Revenue minus lender credits" icon={TrendingUp}  accent="green" />
         <MetricCard label="Total Debits"      value={$(data.debits)}           sub="Outbound payments"           icon={TrendingDown} accent="red" />
         <MetricCard label="Withholding Rate"  value={pct(wh)}                  sub="Lender debits / revenue"     icon={Percent}     accent={whClr === 'none' ? 'blue' : whClr} />
-        <MetricCard label="Lender Debits"     value={$(data.lender_debits)}    sub="MCA repayments"              icon={Building2}   accent="amber" />
+        <MetricCard label="Lender Debits"     value={$(data.lender_debits)}    sub="Weekly payment × 4.33"       icon={Building2}   accent="amber" />
       </div>
 
       {/* Toggle */}
