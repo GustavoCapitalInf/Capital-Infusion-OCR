@@ -30,7 +30,7 @@ from utils.lender_detection import (
     normalize_lender_debits_monthly,
     normalize_lender_debits_by_lender,
 )
-from utils.metrics import count_nsf, count_loan, extract_charges_only
+from utils.metrics import count_nsf, count_loan, count_pos, extract_charges_only
 from utils.ocr_headless import (
     extract_columnar_transactions_from_pdf,
     extract_text_from_pdf,
@@ -212,8 +212,9 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
 
     file_true_revenue = file_credits - lender_credit_total
     withholding_rate = (lender_debit_total / file_true_revenue * 100) if file_true_revenue > 0 else 0.0
-    nsf_count = count_nsf(temp_df, original_text)
+    nsf_count  = count_nsf(temp_df, original_text)
     loan_count = count_loan(temp_df)
+    pos_count  = count_pos(temp_df)
 
     avg_bal = extract_average_balance(original_text) if original_text else None
     if avg_bal is None:
@@ -252,7 +253,8 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
         "true_revenue":      round(file_credits - lender_credit_total, 2),
         "withholding_rate":  round(withholding_rate, 4),
         "nsf_count":         nsf_count,
-        "loan_count":         loan_count,
+        "loan_count":        loan_count,
+        "pos_count":         pos_count,
         "avg_daily_balance": round(float(avg_bal), 2),
         "charges_only":      round(charges_only_total, 2),
     }
@@ -278,6 +280,7 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
     all_filenames = [f[1] for f in files]
     statements = []
     all_lender_rows: list[pd.DataFrame] = []
+    all_lender_credit_rows: list[pd.DataFrame] = []
     all_flagged: list[dict] = []
     all_transactions: list[dict] = []
 
@@ -291,6 +294,11 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
             lr["statement"] = filename
             all_lender_rows.append(lr)
 
+        if not result["lender_credit_rows"].empty:
+            lcr = result["lender_credit_rows"].copy()
+            lcr["statement"] = filename
+            all_lender_credit_rows.append(lcr)
+
         all_flagged.extend(result["flagged"])
 
         if not result["temp_df"].empty:
@@ -303,8 +311,9 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
     total_debits   = sum(s["debits"]         for s in statements)
     total_ldr_deb  = sum(s["lender_debits"]  for s in statements)
     total_ldr_crd  = sum(s["lender_credits"] for s in statements)
-    total_nsf      = sum(s["nsf_count"]      for s in statements)
-    total_pos      = sum(s["loan_count"]      for s in statements)
+    total_nsf      = sum(s["nsf_count"]   for s in statements)
+    total_loan     = sum(s["loan_count"]  for s in statements)
+    total_pos      = sum(s["pos_count"]   for s in statements)
     avg_bal        = sum(s["avg_daily_balance"] for s in statements) / n
     true_revenue   = total_credits - total_ldr_crd
     wh_rate        = (total_ldr_deb / true_revenue * 100) if true_revenue > 0 else 0.0
@@ -317,7 +326,8 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
         "lender_credits":    round(total_ldr_crd, 2),
         "true_revenue":      round(true_revenue, 2),
         "nsf_count":         total_nsf,
-        "loan_count":         total_pos,
+        "loan_count":        total_loan,
+        "pos_count":         total_pos,
         "avg_daily_balance": round(avg_bal, 2),
         "withholding_rate":  round(wh_rate, 4),
     }
@@ -329,8 +339,9 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
         "lender_debits":     round(total_ldr_deb / n, 2),
         "lender_credits":    round(total_ldr_crd / n, 2),
         "true_revenue":      round(true_revenue / n, 2),
-        "nsf_count":         round(total_nsf / n, 2),
-        "loan_count":         round(total_pos / n, 2),
+        "nsf_count":         round(total_nsf  / n, 2),
+        "loan_count":        round(total_loan / n, 2),
+        "pos_count":         round(total_pos  / n, 2),
         "avg_daily_balance": round(avg_bal, 2),
         "withholding_rate":  round(wh_rate, 4),
     }
@@ -352,6 +363,19 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
                 "amount":         float(row.get("Lender Debit Amount", 0.0)),
                 "monthly_amount": monthly_by_stmt_lender.get((stmt, lender_name), 0.0),
                 "statement":      stmt,
+                "type":           "debit",
+            })
+
+    if all_lender_credit_rows:
+        combined_lcr = pd.concat(all_lender_credit_rows, ignore_index=True)
+        for _, row in combined_lcr.iterrows():
+            lenders.append({
+                "lender":         str(row.get("Detected Lender", "")),
+                "keyword":        str(row.get("Matched Keyword", "")),
+                "amount":         float(row.get("Lender Credit Amount", 0.0)),
+                "monthly_amount": 0.0,
+                "statement":      str(row.get("statement", "")),
+                "type":           "credit",
             })
 
     # Risk

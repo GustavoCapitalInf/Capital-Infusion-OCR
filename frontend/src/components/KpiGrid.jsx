@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   DollarSign, TrendingUp, TrendingDown, Percent, Building2,
-  Banknote, Landmark, AlertTriangle, CreditCard,
+  Banknote, Landmark, AlertTriangle, CreditCard, ShoppingCart,
   ChevronDown, ChevronUp,
 } from 'lucide-react'
 import MetricCard from './MetricCard'
@@ -50,9 +50,9 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
         </button>
       </div>
 
-      {/* Secondary 4 */}
+      {/* Secondary 5 */}
       {expanded && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-slide-down">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 animate-slide-down">
           <MetricCard
             label="Net Cash Flow"
             value={(cfPos ? '+' : '') + $(data.cash_flow)}
@@ -61,9 +61,10 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
             accent={cfPos ? 'green' : 'red'}
             badge={cfPos ? 'Positive' : 'Negative'}
           />
-          <MetricCard label="Avg Daily Balance" value={$(data.avg_daily_balance)} sub="Across statement period"  icon={Landmark}      accent="blue" />
-          <MetricCard label="NSF Count"         value={String(nsf)}               sub="Returned / bounced items" icon={AlertTriangle}  accent={nsfClr} />
-          <MetricCard label="Loan Count"         value={String(Math.round(data.loan_count ?? 0))} sub="Loan transactions detected" icon={CreditCard}  accent="none" />
+          <MetricCard label="Avg Daily Balance" value={$(data.avg_daily_balance)}                       sub="Across statement period"    icon={Landmark}      accent="blue" />
+          <MetricCard label="NSF Count"         value={String(nsf)}                                     sub="Returned / bounced items"   icon={AlertTriangle} accent={nsfClr} />
+          <MetricCard label="Loan Count"        value={String(Math.round(data.loan_count ?? 0))}        sub="Loan transactions detected" icon={CreditCard}    accent="none" />
+          <MetricCard label="POS Count"         value={String(Math.round(data.pos_count  ?? 0))}        sub="Point-of-sale purchases"    icon={ShoppingCart}  accent="none" />
         </div>
       )}
     </div>
