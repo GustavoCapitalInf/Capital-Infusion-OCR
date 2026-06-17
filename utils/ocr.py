@@ -13,9 +13,9 @@ import pdfplumber
 
 from langdetect import detect
 from PIL import Image
-from pdf2image import convert_from_bytes
 
 from utils.cleaning import fix_spaced_ocr_text
+from utils.pdf_render import pdf_to_images
 
 # ---------------------------------------------------------------------------
 # Configuration  (adjust paths per deployment environment)
@@ -103,7 +103,7 @@ def _extract_pdfplumber(uploaded_file) -> str:
 def _extract_easyocr_pdf(uploaded_file) -> str:
     reader = _load_easyocr_reader()
     uploaded_file.seek(0)
-    pages = convert_from_bytes(uploaded_file.read(), dpi=300, poppler_path=POPPLER_PATH)
+    pages = pdf_to_images(uploaded_file.read(), dpi=300, poppler_path=POPPLER_PATH)
     full_text = ""
     bar = st.progress(0)
     for i, page in enumerate(pages):
@@ -116,9 +116,7 @@ def _extract_easyocr_pdf(uploaded_file) -> str:
 
 def _extract_tesseract_pdf(uploaded_file) -> str:
     uploaded_file.seek(0)
-    pages = convert_from_bytes(
-        uploaded_file.read(), dpi=300, poppler_path=POPPLER_PATH
-    )
+    pages = pdf_to_images(uploaded_file.read(), dpi=300, poppler_path=POPPLER_PATH)
     full_text = ""
     bar = st.progress(0)
     for i, page in enumerate(pages):
