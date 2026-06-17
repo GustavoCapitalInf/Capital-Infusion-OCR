@@ -38,7 +38,11 @@ from utils.ocr import translate_to_english
 from banks.router import route_and_extract
 from banks.base import parse_universal_bank_rows, parse_ocr_transactions, fix_lender_direction
 from utils.calculations import prepare_dataframe
-from utils.lender_detection import get_lender_debits, get_lender_credits
+from utils.lender_detection import (
+    get_lender_debits,
+    get_lender_credits,
+    normalize_lender_debits_monthly,
+)
 from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.balance import extract_average_balance, extract_daily_balances_from_text
 from utils.dates import extract_statement_date
@@ -122,8 +126,9 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
         file_debits  = temp_df["Debit"].sum()  if not temp_df.empty and "Debit"  in temp_df.columns else 0.0
 
     if not raw_df.empty:
-        _,    lender_debit_total,  _ = get_lender_debits(raw_df, file_credits)
-        _, lender_credit_total    = get_lender_credits(raw_df)
+        lender_rows, _, _ = get_lender_debits(raw_df, file_credits)
+        lender_debit_total = normalize_lender_debits_monthly(lender_rows)
+        _, lender_credit_total = get_lender_credits(raw_df)
     else:
         lender_debit_total = lender_credit_total = 0.0
 

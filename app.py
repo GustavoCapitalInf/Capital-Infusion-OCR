@@ -20,7 +20,11 @@ from utils.balance import extract_average_balance, extract_daily_balances_from_t
 from utils.calculations import prepare_dataframe
 from utils.cleaning import normalize_transaction_text, clean_money, fix_spaced_ocr_text
 from utils.dates import extract_statement_date
-from utils.lender_detection import get_lender_debits, get_lender_credits
+from utils.lender_detection import (
+    get_lender_debits,
+    get_lender_credits,
+    normalize_lender_debits_monthly,
+)
 from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.ocr import extract_text_from_pdf, extract_text_from_image, translate_to_english
 from utils.risk_detection import calculate_risk_level, generate_notes
@@ -773,8 +777,9 @@ def process_file(uploaded_file, all_filenames, debug_mode):
 
         if not raw_df.empty:
             clean_df = _sanitize_df(raw_df)
-            lender_rows,        lender_debit_total,  _ = get_lender_debits(clean_df, file_revenue)
-            lender_credit_rows, lender_credit_total    = get_lender_credits(clean_df)
+            lender_rows, _, _ = get_lender_debits(clean_df, file_revenue)
+            lender_debit_total = normalize_lender_debits_monthly(lender_rows)
+            lender_credit_rows, lender_credit_total = get_lender_credits(clean_df)
         else:
             lender_rows = lender_credit_rows = pd.DataFrame()
             lender_debit_total = lender_credit_total = 0.0

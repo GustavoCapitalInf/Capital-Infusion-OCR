@@ -24,7 +24,12 @@ from utils.balance import extract_average_balance, extract_daily_balances_from_t
 from utils.calculations import prepare_dataframe
 from utils.cleaning import normalize_transaction_text, clean_money
 from utils.dates import extract_statement_date, extract_statement_period
-from utils.lender_detection import get_lender_debits, get_lender_credits
+from utils.lender_detection import (
+    get_lender_debits,
+    get_lender_credits,
+    normalize_lender_debits_monthly,
+    normalize_lender_debits_by_lender,
+)
 from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.ocr_headless import (
     extract_columnar_transactions_from_pdf,
@@ -198,7 +203,8 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
     print(f"[process_file] '{filename}' file_credits={file_credits}, file_debits={file_debits}")
 
     if not raw_df.empty:
-        lender_rows, lender_debit_total, _ = get_lender_debits(raw_df, file_credits)
+        lender_rows, _, _ = get_lender_debits(raw_df, file_credits)
+        lender_debit_total = normalize_lender_debits_monthly(lender_rows)
         lender_credit_rows, lender_credit_total = get_lender_credits(raw_df)
     else:
         lender_rows = lender_credit_rows = pd.DataFrame()
@@ -333,12 +339,19 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
     lenders = []
     if all_lender_rows:
         combined_lr = pd.concat(all_lender_rows, ignore_index=True)
+        monthly_by_stmt_lender: dict[tuple[str, str], float] = {}
+        for stmt, grp in combined_lr.groupby("statement"):
+            for lender, amt in normalize_lender_debits_by_lender(grp).items():
+                monthly_by_stmt_lender[(str(stmt), lender)] = amt
         for _, row in combined_lr.iterrows():
+            lender_name = str(row.get("Detected Lender", ""))
+            stmt = str(row.get("statement", ""))
             lenders.append({
-                "lender":    str(row.get("Detected Lender", "")),
-                "keyword":   str(row.get("Matched Keyword", "")),
-                "amount":    float(row.get("Lender Debit Amount", 0.0)),
-                "statement": str(row.get("statement", "")),
+                "lender":         lender_name,
+                "keyword":        str(row.get("Matched Keyword", "")),
+                "amount":         float(row.get("Lender Debit Amount", 0.0)),
+                "monthly_amount": monthly_by_stmt_lender.get((stmt, lender_name), 0.0),
+                "statement":      stmt,
             })
 
     # Risk

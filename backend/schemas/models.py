@@ -37,6 +37,7 @@ class LenderRow(BaseModel):
     lender: str
     keyword: str
     amount: float
+    monthly_amount: float | None = None
     statement: str
 
 
