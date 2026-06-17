@@ -25,7 +25,7 @@ from utils.calculations import prepare_dataframe
 from utils.cleaning import normalize_transaction_text, clean_money
 from utils.dates import extract_statement_date, extract_statement_period
 from utils.lender_detection import get_lender_debits, get_lender_credits
-from utils.metrics import count_nsf, count_pos, extract_charges_only
+from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.ocr_headless import (
     extract_columnar_transactions_from_pdf,
     extract_text_from_pdf,
@@ -141,6 +141,15 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
             if not raw_df.empty:
                 print(f"[process_file] Chase section parser: {len(raw_df)} rows")
 
+        # Capital One uses a Date | Description | Credits | Debits | Balance
+        # column layout. Direction is determined by description keywords since
+        # both credit and debit rows have the same two-amount structure.
+        from banks.capital_one import CapitalOneParser
+        if raw_df.empty and CapitalOneParser.is_this_bank(original_text):
+            raw_df = CapitalOneParser.parse_transactions(original_text)
+            if not raw_df.empty:
+                print(f"[process_file] Capital One parser: {len(raw_df)} rows")
+
         # Generic fallback parsers
         if raw_df.empty:
             raw_df = parse_universal_bank_rows(translated_text)
@@ -195,9 +204,10 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
         lender_rows = lender_credit_rows = pd.DataFrame()
         lender_debit_total = lender_credit_total = 0.0
 
-    withholding_rate = (lender_debit_total / file_credits * 100) if file_credits > 0 else 0.0
+    file_true_revenue = file_credits - lender_credit_total
+    withholding_rate = (lender_debit_total / file_true_revenue * 100) if file_true_revenue > 0 else 0.0
     nsf_count = count_nsf(temp_df, original_text)
-    pos_count = count_pos(temp_df)
+    loan_count = count_loan(temp_df)
 
     avg_bal = extract_average_balance(original_text) if original_text else None
     if avg_bal is None:
@@ -233,9 +243,10 @@ def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> d
         "cash_flow":         round(file_credits - file_debits, 2),
         "lender_debits":     round(lender_debit_total, 2),
         "lender_credits":    round(lender_credit_total, 2),
+        "true_revenue":      round(file_credits - lender_credit_total, 2),
         "withholding_rate":  round(withholding_rate, 4),
         "nsf_count":         nsf_count,
-        "pos_count":         pos_count,
+        "loan_count":         loan_count,
         "avg_daily_balance": round(float(avg_bal), 2),
         "charges_only":      round(charges_only_total, 2),
     }
@@ -287,9 +298,10 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
     total_ldr_deb  = sum(s["lender_debits"]  for s in statements)
     total_ldr_crd  = sum(s["lender_credits"] for s in statements)
     total_nsf      = sum(s["nsf_count"]      for s in statements)
-    total_pos      = sum(s["pos_count"]      for s in statements)
+    total_pos      = sum(s["loan_count"]      for s in statements)
     avg_bal        = sum(s["avg_daily_balance"] for s in statements) / n
-    wh_rate        = (total_ldr_deb / total_credits * 100) if total_credits > 0 else 0.0
+    true_revenue   = total_credits - total_ldr_crd
+    wh_rate        = (total_ldr_deb / true_revenue * 100) if true_revenue > 0 else 0.0
 
     totals = {
         "credits":           round(total_credits, 2),
@@ -297,8 +309,9 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
         "cash_flow":         round(total_credits - total_debits, 2),
         "lender_debits":     round(total_ldr_deb, 2),
         "lender_credits":    round(total_ldr_crd, 2),
+        "true_revenue":      round(true_revenue, 2),
         "nsf_count":         total_nsf,
-        "pos_count":         total_pos,
+        "loan_count":         total_pos,
         "avg_daily_balance": round(avg_bal, 2),
         "withholding_rate":  round(wh_rate, 4),
     }
@@ -309,8 +322,9 @@ def process_files(files: list[tuple[bytes, str]]) -> dict:
         "cash_flow":         round((total_credits - total_debits) / n, 2),
         "lender_debits":     round(total_ldr_deb / n, 2),
         "lender_credits":    round(total_ldr_crd / n, 2),
+        "true_revenue":      round(true_revenue / n, 2),
         "nsf_count":         round(total_nsf / n, 2),
-        "pos_count":         round(total_pos / n, 2),
+        "loan_count":         round(total_pos / n, 2),
         "avg_daily_balance": round(avg_bal, 2),
         "withholding_rate":  round(wh_rate, 4),
     }

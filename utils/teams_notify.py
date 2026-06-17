@@ -32,7 +32,7 @@ def notify_teams(filename: str, client_id: str, results: dict) -> bool:
         "lender_debits":     results.get("lender_debits", 0),
         "withholding_rate":  results.get("withholding_rate", 0),
         "nsf_count":         results.get("nsf_count", 0),
-        "pos_count":         results.get("pos_count", 0),
+        "loan_count":        results.get("loan_count", 0),
         "avg_daily_balance": results.get("avg_daily_balance", 0),
         "cash_flow":         results.get("cash_flow", 0),
         "lender_list":       ", ".join(results.get("lender_list", [])) or "None",

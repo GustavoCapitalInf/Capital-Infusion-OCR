@@ -41,7 +41,8 @@ function applyCustomKeywords(data, keywords) {
   const newLdrDeb  = Number(baseTotals.lender_debits  ?? 0) + extraLdrDeb
   const newLdrCrd  = Number(baseTotals.lender_credits ?? 0) + extraLdrCrd
   const totalCred  = Number(baseTotals.credits ?? 0)
-  const newWHRate  = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+  const newTrueRev = totalCred - newLdrCrd
+  const newWHRate  = newTrueRev > 0 ? (newLdrDeb / newTrueRev) * 100 : 0
 
   return {
     ...data,
@@ -181,7 +182,8 @@ const useStore = create((set, get) => ({
 
       const newLdrDeb = prevLdrDeb + (type === 'debit'  ? totalAmount : 0)
       const newLdrCrd = prevLdrCrd + (type === 'credit' ? totalAmount : 0)
-      const newWHRate = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+      const newTrueRev = totalCred - newLdrCrd
+      const newWHRate = newTrueRev > 0 ? (newLdrDeb / newTrueRev) * 100 : 0
 
       // Persist keyword server-side (fire-and-forget; optimistic UI update)
       const alreadySaved = state.customLenderKeywords.some(
@@ -203,12 +205,14 @@ const useStore = create((set, get) => ({
           ...prevTotals,
           lender_debits:    Number(newLdrDeb.toFixed(2)),
           lender_credits:   Number(newLdrCrd.toFixed(2)),
+          true_revenue:     Number(newTrueRev.toFixed(2)),
           withholding_rate: Number(newWHRate.toFixed(4)),
         },
         averages: {
           ...(state.averages ?? {}),
           lender_debits:    Number((newLdrDeb / n).toFixed(2)),
           lender_credits:   Number((newLdrCrd / n).toFixed(2)),
+          true_revenue:     Number((newTrueRev / n).toFixed(2)),
           withholding_rate: Number(newWHRate.toFixed(4)),
         },
         customLenderKeywords: newKeywords,
@@ -242,7 +246,8 @@ const useStore = create((set, get) => ({
 
       const newLdrDeb = prevLdrDeb + (type === 'debit'  ? amount : 0)
       const newLdrCrd = prevLdrCrd + (type === 'credit' ? amount : 0)
-      const newWHRate = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+      const newTrueRev = totalCred - newLdrCrd
+      const newWHRate = newTrueRev > 0 ? (newLdrDeb / newTrueRev) * 100 : 0
 
       return {
         lenders:  [...state.lenders, newLenderRow],
@@ -250,12 +255,14 @@ const useStore = create((set, get) => ({
           ...prevTotals,
           lender_debits:    Number(newLdrDeb.toFixed(2)),
           lender_credits:   Number(newLdrCrd.toFixed(2)),
+          true_revenue:     Number(newTrueRev.toFixed(2)),
           withholding_rate: Number(newWHRate.toFixed(4)),
         },
         averages: {
           ...(state.averages ?? {}),
           lender_debits:    Number((newLdrDeb / n).toFixed(2)),
           lender_credits:   Number((newLdrCrd / n).toFixed(2)),
+          true_revenue:     Number((newTrueRev / n).toFixed(2)),
           withholding_rate: Number(newWHRate.toFixed(4)),
         },
       }
@@ -277,7 +284,8 @@ const useStore = create((set, get) => ({
 
       const newLdrDeb = Math.max(0, prevLdrDeb - (row.type === 'debit'  ? amount : 0))
       const newLdrCrd = Math.max(0, prevLdrCrd - (row.type === 'credit' ? amount : 0))
-      const newWHRate = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+      const newTrueRev = totalCred - newLdrCrd
+      const newWHRate = newTrueRev > 0 ? (newLdrDeb / newTrueRev) * 100 : 0
 
       return {
         lenders:  state.lenders.filter((l) => l.id !== id),
@@ -285,12 +293,14 @@ const useStore = create((set, get) => ({
           ...prevTotals,
           lender_debits:    Number(newLdrDeb.toFixed(2)),
           lender_credits:   Number(newLdrCrd.toFixed(2)),
+          true_revenue:     Number(newTrueRev.toFixed(2)),
           withholding_rate: Number(newWHRate.toFixed(4)),
         },
         averages: {
           ...(state.averages ?? {}),
           lender_debits:    Number((newLdrDeb / n).toFixed(2)),
           lender_credits:   Number((newLdrCrd / n).toFixed(2)),
+          true_revenue:     Number((newTrueRev / n).toFixed(2)),
           withholding_rate: Number(newWHRate.toFixed(4)),
         },
       }
@@ -329,7 +339,8 @@ const useStore = create((set, get) => ({
 
       const newLdrDeb = Math.max(0, prevLdrDeb - (type === 'debit'  ? removedAmount : 0))
       const newLdrCrd = Math.max(0, prevLdrCrd - (type === 'credit' ? removedAmount : 0))
-      const newWHRate = totalCred > 0 ? (newLdrDeb / totalCred) * 100 : 0
+      const newTrueRev = totalCred - newLdrCrd
+      const newWHRate = newTrueRev > 0 ? (newLdrDeb / newTrueRev) * 100 : 0
 
       return {
         customLenderKeywords: state.customLenderKeywords.filter(

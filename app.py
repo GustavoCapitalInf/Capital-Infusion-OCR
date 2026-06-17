@@ -21,7 +21,7 @@ from utils.calculations import prepare_dataframe
 from utils.cleaning import normalize_transaction_text, clean_money, fix_spaced_ocr_text
 from utils.dates import extract_statement_date
 from utils.lender_detection import get_lender_debits, get_lender_credits
-from utils.metrics import count_nsf, count_pos, extract_charges_only
+from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.ocr import extract_text_from_pdf, extract_text_from_image, translate_to_english
 from utils.risk_detection import calculate_risk_level, generate_notes
 from utils.teams_notify import notify_teams
@@ -453,7 +453,7 @@ def render_empty_state() -> None:
 def render_kpis(total_revenue, total_credits, total_debits,
                 total_lender_debits, total_lender_credits, total_cash_flow,
                 withholding_rate, nsf_count=0, avg_daily_balance=0.0,
-                pos_count=0, n: int = 1, section_key: str = "overall") -> None:
+                loan_count=0, n: int = 1, section_key: str = "overall") -> None:
     avg_rev  = total_revenue / max(n, 1)
     cf_pos   = total_cash_flow >= 0
     cf_sign  = "+" if cf_pos else ""
@@ -588,11 +588,11 @@ def render_kpis(total_revenue, total_credits, total_debits,
             st.markdown(f"""
             <div class="kpi-card">
               <div class="kpi-top">
-                <span class="kpi-label">POS Transactions</span>
-                <div class="kpi-icon-wrap kpi-icon-blue">💳</div>
+                <span class="kpi-label">Loan Count</span>
+                <div class="kpi-icon-wrap kpi-icon-blue">🏦</div>
               </div>
-              <div class="kpi-value">{pos_count}</div>
-              <div class="kpi-sub">Point-of-sale activity</div>
+              <div class="kpi-value">{loan_count}</div>
+              <div class="kpi-sub">Loan transactions detected</div>
             </div>""", unsafe_allow_html=True)
 
 
@@ -795,7 +795,7 @@ def process_file(uploaded_file, all_filenames, debug_mode):
         flagged_df = pd.DataFrame(flagged)
 
         stmt_nsf = count_nsf(temp_df, original_text)
-        stmt_pos = count_pos(temp_df)
+        stmt_loan = count_loan(temp_df)
 
         avg_bal_result = extract_average_balance(original_text) if original_text else None
         if avg_bal_result is None:
@@ -823,7 +823,7 @@ def process_file(uploaded_file, all_filenames, debug_mode):
         "Lender Transactions":   len(lender_rows),
         "NSF Count":             stmt_nsf,
         "Avg Daily Balance":     stmt_avg_balance,
-        "POS Count":             stmt_pos,
+        "Loan Count":            stmt_loan,
     }, temp_df, lender_rows, lender_credit_rows, flagged_df
 
 
@@ -903,10 +903,7 @@ def main():
 
         combined_df = pd.concat(all_dataframes, ignore_index=True) if all_dataframes else pd.DataFrame()
         nsf_count = int(combined_df["NSF Flag"].sum()) if not combined_df.empty and "NSF Flag" in combined_df.columns else 0
-        pos_count = (
-            int(combined_df["Description"].astype(str).str.upper().str.contains(r"\bPOS\b", regex=True).sum())
-            if not combined_df.empty and "Description" in combined_df.columns else 0
-        )
+        loan_count = count_loan(combined_df) if not combined_df.empty else 0
 
         # ── Lender app forwarding ───────────────────────────────────────────
         try:
@@ -914,7 +911,7 @@ def main():
                 f"{_LENDER_APP_URL}/bank-statement",
                 json={"client_id": client_id, "summary_metrics": {
                     "nsf_count":         nsf_count,
-                    "pos_count":         pos_count,
+                    "loan_count":        loan_count,
                     "total_deposits":    round(total_credits / n, 2),
                     "total_revenue":     round(total_revenue / n, 2),
                     "avg_daily_balance": round(avg_daily_balance, 2),
@@ -954,7 +951,7 @@ def main():
             render_kpis(
                 total_revenue, total_credits, total_debits,
                 total_lender_debits, total_lender_credits, total_cash_flow,
-                withholding_rate, nsf_count, avg_daily_balance, pos_count,
+                withholding_rate, nsf_count, avg_daily_balance, loan_count,
                 n=n, section_key="overall")
 
             st.markdown("""
@@ -979,7 +976,7 @@ def main():
                 withholding_rate,
                 int(results_df["NSF Count"].mean()),
                 float(results_df["Avg Daily Balance"].mean()),
-                int(results_df["POS Count"].mean()), n=1, section_key="monthly")
+                int(results_df["Loan Count"].mean()), n=1, section_key="monthly")
 
             st.divider()
 
@@ -1085,8 +1082,8 @@ def main():
                     <span class="nsf-count">${avg_daily_balance:,.0f}</span>
                   </div>
                   <div class="nsf-row">
-                    <span class="nsf-name">POS Transactions</span>
-                    <span class="nsf-count">{pos_count}</span>
+                    <span class="nsf-name">Loan Count</span>
+                    <span class="nsf-count">{loan_count}</span>
                   </div>
                 </div>""", unsafe_allow_html=True)
 
@@ -1259,12 +1256,12 @@ def main():
                     "Metric": ["Total Revenue","Total Credits","Total Debits",
                                "Total Lender Debits","Total Lender Credits",
                                "Withholding Rate","Cash Flow",
-                               "NSF Count","Avg Daily Balance","POS Count"],
+                               "NSF Count","Avg Daily Balance","Loan Count"],
                     "Value": [f"${total_revenue:,.2f}", f"${total_credits:,.2f}",
                               f"${total_debits:,.2f}",  f"${total_lender_debits:,.2f}",
                               f"${total_lender_credits:,.2f}", f"{withholding_rate:.2f}%",
                               f"${total_cash_flow:,.2f}", str(nsf_count),
-                              f"${avg_daily_balance:,.2f}", str(pos_count)],
+                              f"${avg_daily_balance:,.2f}", str(loan_count)],
                 })
                 st.download_button(
                     "⬇️  Download Summary Report (CSV)",

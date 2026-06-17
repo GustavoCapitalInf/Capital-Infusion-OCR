@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   DollarSign, TrendingUp, TrendingDown, Percent, Building2,
-  Banknote, Landmark, AlertTriangle, ShoppingCart,
+  Banknote, Landmark, AlertTriangle, CreditCard,
   ChevronDown, ChevronUp,
 } from 'lucide-react'
 import MetricCard from './MetricCard'
@@ -24,10 +24,11 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
 
   return (
     <div className="space-y-3 animate-fade-in">
-      {/* Primary 5 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+      {/* Primary 6 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <MetricCard label="Total Revenue"     value={$(data.credits)}          sub={avg ?? 'Inbound deposits'}   icon={DollarSign}  accent="blue" />
         <MetricCard label="Lender Credits"    value={$(data.lender_credits)}   sub="MCA advances received"       icon={Banknote}    accent="purple" />
+        <MetricCard label="True Revenue"      value={$(data.true_revenue)}     sub="Revenue minus lender credits" icon={TrendingUp}  accent="green" />
         <MetricCard label="Total Debits"      value={$(data.debits)}           sub="Outbound payments"           icon={TrendingDown} accent="red" />
         <MetricCard label="Withholding Rate"  value={pct(wh)}                  sub="Lender debits / revenue"     icon={Percent}     accent={whClr === 'none' ? 'blue' : whClr} />
         <MetricCard label="Lender Debits"     value={$(data.lender_debits)}    sub="MCA repayments"              icon={Building2}   accent="amber" />
@@ -45,7 +46,7 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
         >
           {expanded
             ? <><ChevronUp size={11} /> Show less</>
-            : <><ChevronDown size={11} /> 4 more metrics</>}
+            : <><ChevronDown size={11} /> More metrics</>}
         </button>
       </div>
 
@@ -62,7 +63,7 @@ export default function KpiGrid({ data, sectionKey = 'overall', n = 1 }) {
           />
           <MetricCard label="Avg Daily Balance" value={$(data.avg_daily_balance)} sub="Across statement period"  icon={Landmark}      accent="blue" />
           <MetricCard label="NSF Count"         value={String(nsf)}               sub="Returned / bounced items" icon={AlertTriangle}  accent={nsfClr} />
-          <MetricCard label="POS Transactions"  value={String(Math.round(data.pos_count ?? 0))} sub="Point-of-sale activity" icon={ShoppingCart}  accent="none" />
+          <MetricCard label="Loan Count"         value={String(Math.round(data.loan_count ?? 0))} sub="Loan transactions detected" icon={CreditCard}  accent="none" />
         </div>
       )}
     </div>

@@ -88,55 +88,31 @@ def count_nsf(temp_df: pd.DataFrame, original_text: str = "") -> int:
  
  
 # ---------------------------------------------------------------------------
-# POS count
+# Loan count
 # ---------------------------------------------------------------------------
- 
-def count_pos(temp_df: pd.DataFrame) -> int:
+
+def count_loan(temp_df: pd.DataFrame) -> int:
     """
-    Count POS / point-of-sale transactions in the parsed DataFrame.
- 
-    Each bank labels card purchases differently:
-      - Wells Fargo:  "Purchase authorized on"
-      - Chase:        "Card Purchase" / "Card Purchase With Pin"
-      - BofA:         "CHECKCARD" / "PURCHASE 0103..."
-      - TD Bank:      "DEBIT POS AP" / "DEBITPOSAP" (squished OCR)
-      - Generic:      \bPOS\b (word boundary)
+    Count loan-related transactions in the parsed DataFrame.
+
+    Matches traditional bank loans, SBA loans, lines of credit, and
+    mortgage payments. Retail / POS purchases (Whole Foods, card swipes,
+    etc.) are naturally excluded because they contain none of these keywords.
     """
     if temp_df.empty or "Description" not in temp_df.columns:
         return 0
- 
+
     desc = temp_df["Description"].astype(str).str.upper()
- 
-    # Combined pattern — catches all bank formats
-    # Excludes false positives: DEPOSIT, COMPOSE, EXPOSURE, DISPOSAL
-    pos_pattern = (
-        r"\bPOS\b"                        # standalone POS (TD: DEBIT POS AP)
-        r"|DEBITPOSAP"                      # TD squished: DEBIT POS AP
-        r"|DBCRDPURAP"                      # TD squished: debit card PURCHASE
-        r"|\bDEBIT\s+POS\b"              # TD: DEBIT POS AP
-        r"|\bCARD\s+PURCHASE\b"          # Chase: Card Purchase
-        r"|\bCARD\s+PURCHASE\s+WITH\s+PIN\b"  # Chase: Card Purchase With Pin
-        r"|\bCHECKCARD\b"                 # BofA: CHECKCARD 0114 ...
-        r"|\bPURCHASE\s+AUTHORIZED\b"    # Wells Fargo: Purchase authorized on
-        r"|\bRECURRING\s+CARD\s+PURCHASE\b"    # Chase: Recurring Card Purchase
-        r"|DBCRD\s+PMT\s+AP"
-        r"|DBCRD\s+PUR\s+AP"
-        r"|VISA\s+DDA\s+PUR\s+AP"
-        r"|\bINTERAC\s*PURCHASE"           # RBC: Interac purchase / Interacpurchase
-        r"|\bCONTACTLESS\s*INTERAC"      # RBC: Contactless Interac purchase
+
+    loan_pattern = (
+        r"\bLOAN\b"                      # AUTO LOAN, LOAN PMT, BUSINESS LOAN …
+        r"|\bMORTGAGE\b|\bMORTG\b"     # mortgage payments
+        r"|\bLINE\s+OF\s+CREDIT\b"     # line of credit draws / payments
+        r"|\bLOC\s+(?:PMT|PYMT|PAY)\b" # LOC payment abbreviations
+        r"|\bSBA\b"                      # Small Business Administration loan
     )
- 
-    # Exclude non-POS uses of PURCHASE
-    exclude_pattern = (
-        r"PURCHASE\s+RETURN"       # returns are not POS
-        r"|REPURCHASE"
-        r"|PURCHASE\s+ORDER"
-    )
- 
-    matches = desc.str.contains(pos_pattern, regex=True, na=False)
-    exclusions = desc.str.contains(exclude_pattern, regex=True, na=False)
- 
-    return int((matches & ~exclusions).sum())
+
+    return int(desc.str.contains(loan_pattern, regex=True, na=False).sum())
  
  
 # ---------------------------------------------------------------------------

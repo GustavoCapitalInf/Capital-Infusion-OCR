@@ -26,7 +26,7 @@ def _forward_to_lender_app(client_id: str, result: dict) -> dict:
         "client_id": client_id,
         "summary_metrics": {
             "nsf_count":         totals.get("nsf_count", 0),
-            "pos_count":         totals.get("pos_count", 0),
+            "loan_count":        totals.get("loan_count", 0),
             "total_deposits":    averages.get("credits", 0),
             "total_revenue":     averages.get("credits", 0),
             "avg_daily_balance": totals.get("avg_daily_balance", 0),

@@ -39,7 +39,7 @@ from banks.router import route_and_extract
 from banks.base import parse_universal_bank_rows, parse_ocr_transactions, fix_lender_direction
 from utils.calculations import prepare_dataframe
 from utils.lender_detection import get_lender_debits, get_lender_credits
-from utils.metrics import count_nsf, count_pos, extract_charges_only
+from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.balance import extract_average_balance, extract_daily_balances_from_text
 from utils.dates import extract_statement_date
 
@@ -127,9 +127,10 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
     else:
         lender_debit_total = lender_credit_total = 0.0
 
-    withholding_rate = (lender_debit_total / file_credits * 100) if file_credits > 0 else 0.0
+    file_true_revenue = file_credits - lender_credit_total
+    withholding_rate = (lender_debit_total / file_true_revenue * 100) if file_true_revenue > 0 else 0.0
     nsf_count        = count_nsf(temp_df, original_text)
-    pos_count        = count_pos(temp_df)
+    loan_count       = count_loan(temp_df)
 
     avg_bal = extract_average_balance(original_text) if original_text else None
     if avg_bal is None:
@@ -150,7 +151,7 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
         "lender_credits":    round(lender_credit_total, 2),
         "withholding_rate":  round(withholding_rate, 4),
         "nsf_count":         nsf_count,
-        "pos_count":         pos_count,
+        "loan_count":         loan_count,
         "avg_daily_balance": round(avg_bal, 2),
         "charges_only":      round(charges_only_total, 2),
     }
@@ -193,12 +194,13 @@ def parse_bank_statement():
         "cash_flow":         round(sum(s["cash_flow"]      for s in good), 2),
         "lender_debits":     round(sum(s["lender_debits"]  for s in good), 2),
         "lender_credits":    round(sum(s["lender_credits"] for s in good), 2),
+        "true_revenue":      round(sum(s["credits"] for s in good) - sum(s["lender_credits"] for s in good), 2),
         "nsf_count":         sum(s["nsf_count"]            for s in good),
-        "pos_count":         sum(s["pos_count"]            for s in good),
+        "loan_count":         sum(s["loan_count"]            for s in good),
         "avg_daily_balance": round(sum(s["avg_daily_balance"] for s in good) / n, 2),
         "withholding_rate":  round(
-            sum(s["lender_debits"] for s in good) / sum(s["credits"] for s in good) * 100
-            if sum(s["credits"] for s in good) > 0 else 0.0, 4
+            totals["lender_debits"] / totals["true_revenue"] * 100
+            if totals["true_revenue"] > 0 else 0.0, 4
         ),
     }
 
@@ -208,8 +210,9 @@ def parse_bank_statement():
         "cash_flow":         round(totals["cash_flow"]         / n, 2),
         "lender_debits":     round(totals["lender_debits"]     / n, 2),
         "lender_credits":    round(totals["lender_credits"]    / n, 2),
+        "true_revenue":      round(totals["true_revenue"]      / n, 2),
         "nsf_count":         round(totals["nsf_count"]         / n, 2),
-        "pos_count":         round(totals["pos_count"]         / n, 2),
+        "loan_count":         round(totals["loan_count"]         / n, 2),
         "avg_daily_balance": totals["avg_daily_balance"],
         "withholding_rate":  totals["withholding_rate"],
     }
@@ -224,7 +227,7 @@ def parse_bank_statement():
                     "client_id": client_id,
                     "summary_metrics": {
                         "nsf_count":         totals["nsf_count"],
-                        "pos_count":         totals["pos_count"],
+                        "loan_count":         totals["loan_count"],
                         "total_deposits":    averages["credits"],
                         "total_revenue":     averages["credits"],
                         "avg_daily_balance": averages["avg_daily_balance"],
