@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import clsx from 'clsx'
 import Sidebar from './components/Sidebar'
 import ThemeToggle from './components/ThemeToggle'
 import Dashboard   from './pages/Dashboard'
@@ -53,8 +54,12 @@ function ScrollToTop({ mainRef }) {
 }
 
 function Layout() {
-  const mainRef           = useRef(null)
+  const mainRef            = useRef(null)
+  const { pathname }       = useLocation()
+  const previewFilename    = useStore((s) => s.previewFilename)
   const loadCustomKeywords = useStore((s) => s.loadCustomKeywords)
+  const splitViewActive    = pathname === '/dashboard' && Boolean(previewFilename)
+
   useEffect(() => { loadCustomKeywords() }, [])
 
   return (
@@ -62,7 +67,10 @@ function Layout() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <main ref={mainRef} className="flex-1 overflow-y-auto">
+        <main
+          ref={mainRef}
+          className={clsx('flex-1', splitViewActive ? 'overflow-hidden' : 'overflow-y-auto')}
+        >
           <ScrollToTop mainRef={mainRef} />
           <Routes>
             <Route path="/"            element={<Navigate to="/dashboard" replace />} />
