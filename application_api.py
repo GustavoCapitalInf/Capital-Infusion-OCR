@@ -46,6 +46,7 @@ from utils.lender_detection import (
 from utils.metrics import count_nsf, count_loan, extract_charges_only
 from utils.balance import extract_average_balance, extract_daily_balances_from_text
 from utils.dates import extract_statement_date
+from utils.orbit_notify import notify_orbit
 
 _LENDER_APP_URL = "https://lendersuggestion.onrender.com"
 
@@ -262,7 +263,11 @@ def parse_bank_statement():
             if resp.ok:
                 cid = resp.json().get("client_id") or client_id
                 jr  = _requests.get(f"{_LENDER_APP_URL}/job/{cid}", timeout=10)
-                lender_result["lender_suggestion"] = jr.json() if jr.ok else {"error": jr.status_code}
+                if jr.ok:
+                    lender_result["lender_suggestion"] = jr.json()
+                    lender_result.update(notify_orbit(cid, lender_result["lender_suggestion"]))
+                else:
+                    lender_result["lender_suggestion"] = {"error": jr.status_code}
         except Exception as exc:
             lender_result["lender_app_notified"] = False
             lender_result["lender_app_status"]   = str(exc)
