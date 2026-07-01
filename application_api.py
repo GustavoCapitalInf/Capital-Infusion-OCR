@@ -112,6 +112,12 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
             if raw_df.empty:
                 raw_df = RegionsParser.parse_transactions(raw_bytes)
 
+        # PNC lists transactions as DATE | AMOUNT | DESCRIPTION; the universal
+        # parser reads the wrong column.
+        from banks.pnc import PNCParser
+        if raw_df.empty and PNCParser.is_this_bank(original_text):
+            raw_df = PNCParser.parse_transactions(original_text)
+
         if raw_df.empty:
             raw_df = parse_universal_bank_rows(translated_text)
         if raw_df.empty:
@@ -360,7 +366,11 @@ def parse_application():
                 job_resp = _requests.get(
                     f"{_LENDER_APP_URL}/job/{post_client_id}", timeout=10
                 )
-                result["lender_suggestion"] = job_resp.json() if job_resp.ok else {"error": job_resp.status_code}
+                if job_resp.ok:
+                    result["lender_suggestion"] = job_resp.json()
+                    result.update(notify_orbit(post_client_id, result["lender_suggestion"]))
+                else:
+                    result["lender_suggestion"] = {"error": job_resp.status_code}
     except Exception as e:
         result["lender_app_notified"] = False
         result["lender_app_status"] = str(e)
