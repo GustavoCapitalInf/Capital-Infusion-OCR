@@ -166,6 +166,12 @@ const useStore = create((set, get) => ({
   setResults: (data) =>
     set((state) => {
       const augmented = applyCustomKeywords(data, state.customLenderKeywords)
+      // Notify parent window (Orbit iframe host) with full results
+      try {
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'OCR_RESULTS', payload: augmented }, '*')
+        }
+      } catch {}
       return {
         sessionId:    augmented.session_id,
         statements:   augmented.statements  ?? [],
