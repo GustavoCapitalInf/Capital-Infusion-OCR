@@ -95,7 +95,7 @@ def _prep_raw_df(raw_df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 _SUSPICIOUS_KEYWORDS = ["SQ", "SQUARE", "PAYPAL", "PAY PAL", "STRIPE",
-                        "SHOPIFY", "INTUIT", "CLOVER", "TOAST"]
+                        "SHOPIFY", "INTUIT", "KLARNA", "CLOVER", "TOAST"]
 
 
 def process_file(raw_bytes: bytes, filename: str, all_filenames: list[str]) -> dict:
