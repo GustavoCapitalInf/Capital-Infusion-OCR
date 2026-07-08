@@ -112,12 +112,6 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
             if raw_df.empty:
                 raw_df = RegionsParser.parse_transactions(raw_bytes)
 
-        # PNC lists transactions as DATE | AMOUNT | DESCRIPTION; the universal
-        # parser reads the wrong column.
-        from banks.pnc import PNCParser
-        if raw_df.empty and PNCParser.is_this_bank(original_text):
-            raw_df = PNCParser.parse_transactions(original_text)
-
         if raw_df.empty:
             raw_df = parse_universal_bank_rows(translated_text)
         if raw_df.empty:
