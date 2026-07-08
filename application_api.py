@@ -8,7 +8,7 @@ POST /parse-application
     parsed fields as JSON.
 
     Content-Type: multipart/form-data
-    Body:         file=<pdf>  [client_id=<str>]
+    Body:         file=<pdf>  [client_id=<str>]  [assignedRepEmail=<str>]
 
 POST /parse-bank-statement
     Receives one or more bank statement files (PDF / PNG / JPG / CSV / XLSX)
@@ -296,12 +296,14 @@ def parse_application():
     if not uploaded.filename.lower().endswith(".pdf"):
         return jsonify({"error": "Only PDF files are accepted."}), 400
 
-    client_id = request.form.get("client_id", "")
+    client_id           = request.form.get("client_id", "")
+    assigned_rep_email  = request.form.get("assignedRepEmail", "")
     pdf_bytes = uploaded.read()
     ocr = parse_signed_application(pdf_bytes)
 
     payload = {
         "clientCode":                   client_id,
+        "assignedRepEmail":             assigned_rep_email,
         # business
         "Business_Legal_Name":         ocr.get("Business_Legal_Name"),
         "Doing_Business_As_DBA":       ocr.get("Doing_Business_As_DBA"),
