@@ -112,6 +112,12 @@ def _process_statement(raw_bytes: bytes, filename: str, all_filenames: list[str]
             if raw_df.empty:
                 raw_df = RegionsParser.parse_transactions(raw_bytes)
 
+        # PNC lists transactions as DATE | AMOUNT | DESCRIPTION; the universal
+        # parser reads the wrong column.
+        from banks.pnc import PNCParser
+        if raw_df.empty and PNCParser.is_this_bank(original_text):
+            raw_df = PNCParser.parse_transactions(original_text)
+
         if raw_df.empty:
             raw_df = parse_universal_bank_rows(translated_text)
         if raw_df.empty:
@@ -211,19 +217,22 @@ def parse_bank_statement():
     good = [s for s in statements if "error" not in s]
     n    = len(good) or 1
 
+    lender_debits_total = round(sum(s["lender_debits"] for s in good), 2)
+    true_revenue_total  = round(sum(s["credits"] for s in good) - sum(s["lender_credits"] for s in good), 2)
+
     totals = {
         "credits":           round(sum(s["credits"]        for s in good), 2),
         "debits":            round(sum(s["debits"]         for s in good), 2),
         "cash_flow":         round(sum(s["cash_flow"]      for s in good), 2),
-        "lender_debits":     round(sum(s["lender_debits"]  for s in good), 2),
+        "lender_debits":     lender_debits_total,
         "lender_credits":    round(sum(s["lender_credits"] for s in good), 2),
-        "true_revenue":      round(sum(s["credits"] for s in good) - sum(s["lender_credits"] for s in good), 2),
+        "true_revenue":      true_revenue_total,
         "nsf_count":         sum(s["nsf_count"]            for s in good),
         "loan_count":         sum(s["loan_count"]            for s in good),
         "avg_daily_balance": round(sum(s["avg_daily_balance"] for s in good) / n, 2),
         "withholding_rate":  round(
-            totals["lender_debits"] / totals["true_revenue"] * 100
-            if totals["true_revenue"] > 0 else 0.0, 4
+            lender_debits_total / true_revenue_total * 100
+            if true_revenue_total > 0 else 0.0, 4
         ),
     }
 
