@@ -46,6 +46,7 @@ from utils.lender_detection import (
 from utils.metrics import count_nsf, count_loan, count_pos, extract_charges_only
 from utils.balance import extract_average_balance, extract_daily_balances_from_text
 from utils.dates import extract_statement_date
+from utils.orbit_notify import notify_orbit
 
 _LENDER_APP_URL = "https://lendersuggestion.onrender.com"
 
@@ -212,20 +213,23 @@ def parse_bank_statement():
     good = [s for s in statements if "error" not in s]
     n    = len(good) or 1
 
+    lender_debits_total = round(sum(s["lender_debits"] for s in good), 2)
+    true_revenue_total  = round(sum(s["credits"] for s in good) - sum(s["lender_credits"] for s in good), 2)
+
     totals = {
         "credits":           round(sum(s["credits"]        for s in good), 2),
         "debits":            round(sum(s["debits"]         for s in good), 2),
         "cash_flow":         round(sum(s["cash_flow"]      for s in good), 2),
-        "lender_debits":     round(sum(s["lender_debits"]  for s in good), 2),
+        "lender_debits":     lender_debits_total,
         "lender_credits":    round(sum(s["lender_credits"] for s in good), 2),
-        "true_revenue":      round(sum(s["credits"] for s in good) - sum(s["lender_credits"] for s in good), 2),
+        "true_revenue":      true_revenue_total,
         "nsf_count":         sum(s["nsf_count"]   for s in good),
         "loan_count":        sum(s["loan_count"]  for s in good),
         "pos_count":         sum(s["pos_count"]   for s in good),
         "avg_daily_balance": round(sum(s["avg_daily_balance"] for s in good) / n, 2),
         "withholding_rate":  round(
-            totals["lender_debits"] / totals["true_revenue"] * 100
-            if totals["true_revenue"] > 0 else 0.0, 4
+            lender_debits_total / true_revenue_total * 100
+            if true_revenue_total > 0 else 0.0, 4
         ),
     }
 
@@ -266,7 +270,11 @@ def parse_bank_statement():
             if resp.ok:
                 cid = resp.json().get("client_id") or client_id
                 jr  = _requests.get(f"{_LENDER_APP_URL}/job/{cid}", timeout=10)
-                lender_result["lender_suggestion"] = jr.json() if jr.ok else {"error": jr.status_code}
+                if jr.ok:
+                    lender_result["lender_suggestion"] = jr.json()
+                    lender_result.update(notify_orbit(cid, lender_result["lender_suggestion"]))
+                else:
+                    lender_result["lender_suggestion"] = {"error": jr.status_code}
         except Exception as exc:
             lender_result["lender_app_notified"] = False
             lender_result["lender_app_status"]   = str(exc)
@@ -359,7 +367,11 @@ def parse_application():
                 job_resp = _requests.get(
                     f"{_LENDER_APP_URL}/job/{post_client_id}", timeout=10
                 )
-                result["lender_suggestion"] = job_resp.json() if job_resp.ok else {"error": job_resp.status_code}
+                if job_resp.ok:
+                    result["lender_suggestion"] = job_resp.json()
+                    result.update(notify_orbit(post_client_id, result["lender_suggestion"]))
+                else:
+                    result["lender_suggestion"] = {"error": job_resp.status_code}
     except Exception as e:
         result["lender_app_notified"] = False
         result["lender_app_status"] = str(e)
