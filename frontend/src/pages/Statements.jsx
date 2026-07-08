@@ -54,6 +54,7 @@ const summaryCols = [
   { key: 'nsf_count', label: 'NSF', render: (v) => <Badge text={String(v)} variant={v > 2 ? 'red' : v > 0 ? 'amber' : 'green'} /> },
   { key: 'avg_daily_balance', label: 'Avg Balance', render: (v) => <span className="text-text-secondary">{$(v)}</span> },
   { key: 'loan_count', label: 'Loans', render: (v) => <span className="badge badge-gray">{v}</span> },
+  { key: 'pos_count',  label: 'POS',   render: (v) => <span className="badge badge-gray">{v}</span> },
 ]
 
 export default function Statements() {

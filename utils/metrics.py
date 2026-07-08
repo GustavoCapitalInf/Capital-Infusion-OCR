@@ -116,6 +116,34 @@ def count_loan(temp_df: pd.DataFrame) -> int:
  
  
 # ---------------------------------------------------------------------------
+# POS count
+# ---------------------------------------------------------------------------
+
+def count_pos(temp_df: pd.DataFrame) -> int:
+    """
+    Count point-of-sale / debit card purchase transactions.
+
+    Matches card swipes, POS terminals, and INTERAC purchases.
+    Loan payments, transfers, and deposits are excluded naturally.
+    """
+    if temp_df.empty or "Description" not in temp_df.columns:
+        return 0
+
+    desc = temp_df["Description"].astype(str).str.upper()
+
+    pos_pattern = (
+        r"\bCARD\s+PURCHASE\b"
+        r"|\bCHECKCARD\b"
+        r"|\bPOS\b"
+        r"|\bINTERAC\s+PURCHASE\b"
+        r"|\bDEBIT\s+CARD\s+PURCHASE\b"
+        r"|\bPOINT\s+OF\s+SALE\b"
+    )
+
+    return int(desc.str.contains(pos_pattern, regex=True, na=False).sum())
+
+
+# ---------------------------------------------------------------------------
 # Charges-only extraction (e.g. checks-and-charges section)
 # ---------------------------------------------------------------------------
  

@@ -798,7 +798,7 @@ def process_file(uploaded_file, all_filenames, debug_mode):
 
         withholding_rate = (lender_debit_total / file_revenue * 100) if file_revenue > 0 else 0.0
 
-        SUSPICIOUS_KEYWORDS = ["SQ","SQUARE","PAYPAL","PAY PAL","STRIPE","SHOPIFY","INTUIT","CLOVER","TOAST"]
+        SUSPICIOUS_KEYWORDS = ["SQ","SQUARE","PAYPAL","PAY PAL","STRIPE","SHOPIFY","INTUIT","KLARNA","CLOVER","TOAST"]
         flagged: list[dict] = []
         if translated_text:
             for line in translated_text.split("\n"):
