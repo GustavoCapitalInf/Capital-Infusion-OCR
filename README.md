@@ -206,7 +206,8 @@ OCR a Capital Infusion funding application PDF and return parsed fields.
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `file` | File | Yes | PDF only |
-| `client_id` | string | No | Forwarded to lender app |
+| `client_id` or `clientCode` | string | No | Forwarded to lender app as `clientCode` |
+| `assignedRepEmail` or `assigned_rep_email` | string | No | Forwarded to lender app as `assignedRepEmail` |
 
 **Response** — JSON with extracted application fields (business name, DBA, owner info, etc.)
 
