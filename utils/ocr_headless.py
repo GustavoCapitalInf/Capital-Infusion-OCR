@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import io
 import re
+import threading
 from collections import defaultdict
 
 import cv2
@@ -25,8 +26,12 @@ from utils.pdf_render import pdf_to_images
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 POPPLER_PATH = r"C:\Users\MohammedBharoocha\Downloads\poppler\poppler-26.02.0\Library\bin"
 
-# Module-level singleton so EasyOCR model loads only once per process
+# Module-level singleton so EasyOCR model loads only once per process.
+# readtext() is not thread-safe, so every use of the reader (including lazy
+# init) must happen under this lock -- Flask's dev server handles requests
+# on separate threads within the same process.
 _easyocr_reader = None
+_easyocr_lock = threading.Lock()
 
 
 def _get_easyocr_reader():
@@ -70,12 +75,13 @@ def extract_text_from_pdf(file_obj) -> str:
 
     # Tier 2 — EasyOCR (scanned)
     try:
-        reader = _get_easyocr_reader()
         pages = pdf_to_images(raw, dpi=300, poppler_path=POPPLER_PATH)
         full_text = ""
-        for page in pages:
-            results = reader.readtext(_preprocess(page), detail=0, paragraph=True)
-            full_text += "\n".join(results) + "\n"
+        with _easyocr_lock:
+            reader = _get_easyocr_reader()
+            for page in pages:
+                results = reader.readtext(_preprocess(page), detail=0, paragraph=True)
+                full_text += "\n".join(results) + "\n"
         if len(full_text.strip()) >= 300:
             return fix_spaced_ocr_text(full_text)
     except Exception as exc:
@@ -97,8 +103,9 @@ def extract_text_from_image(file_obj) -> str:
 
     # Tier 1 — EasyOCR
     try:
-        reader = _get_easyocr_reader()
-        results = reader.readtext(_preprocess(image), detail=0, paragraph=True)
+        with _easyocr_lock:
+            reader = _get_easyocr_reader()
+            results = reader.readtext(_preprocess(image), detail=0, paragraph=True)
         text = "\n".join(results)
         if len(text.strip()) >= 100:
             return fix_spaced_ocr_text(text)
